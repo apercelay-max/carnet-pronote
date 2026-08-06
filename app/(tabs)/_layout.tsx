@@ -6,6 +6,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { TabButton } from "../../src/components/ui/TabButton";
+import { MAX_CONTENT_WIDTH } from "../../src/components/ui/Screen";
 import { usePreferencesStore, TAB_DEFAULTS } from "../../src/store/usePreferencesStore";
 
 export default function TabsLayout() {
@@ -37,6 +38,9 @@ export default function TabsLayout() {
           position: "relative",
           overflow: "hidden",
           flexDirection: "row",
+          alignSelf: "center",
+          width: "100%",
+          maxWidth: MAX_CONTENT_WIDTH - 20,
           borderRadius: theme.radius.xl,
           marginHorizontal: 14,
           marginBottom: Math.max(insets.bottom, 12),
