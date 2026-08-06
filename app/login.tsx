@@ -7,6 +7,7 @@ import { TextField } from "../src/components/ui/TextField";
 import { Button } from "../src/components/ui/Button";
 import { Icon } from "../src/components/ui/Icon";
 import { Card } from "../src/components/ui/Card";
+import { MAX_CONTENT_WIDTH } from "../src/components/ui/Screen";
 
 export default function LoginScreen() {
   const theme = useTheme();
@@ -34,9 +35,15 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, padding: theme.spacing(6), justifyContent: "center" }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          padding: theme.spacing(6),
+          justifyContent: "center",
+          alignItems: "center",
+        }}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={{ width: "100%", maxWidth: MAX_CONTENT_WIDTH - 120 }}>
         <View style={{ alignItems: "center", marginBottom: theme.spacing(9) }}>
           <View
             style={{
@@ -107,6 +114,7 @@ export default function LoginScreen() {
           L'adresse se trouve dans la barre du navigateur quand tu es sur la page de connexion de ton
           établissement. Tes identifiants restent uniquement sur ton téléphone.
         </T>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
