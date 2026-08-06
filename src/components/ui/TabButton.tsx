@@ -27,12 +27,12 @@ export const TabButton = forwardRef<View, Props>(({ isFocused, icon, label, ...r
     >
       <View
         style={{
-          width: 40,
-          height: 26,
-          borderRadius: 13,
+          width: 42,
+          height: 28,
+          borderRadius: 14,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: isFocused ? theme.colors.accentSoft : "transparent",
+          backgroundColor: isFocused ? theme.colors.accentGlass : "transparent",
         }}
       >
         <Icon name={icon} size={19} color={isFocused ? theme.colors.accent : theme.colors.textTertiary} />
