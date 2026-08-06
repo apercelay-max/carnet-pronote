@@ -21,7 +21,11 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "backgroundColor": "#0B0D12",
+      "themeColor": "#0B0D12",
+      "display": "standalone",
+      "output": "static"
     },
     "plugins": [
       "expo-router",
