@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { useColorScheme } from "react-native";
-import { ACCENTS, DARK_NEUTRALS, LIGHT_NEUTRALS } from "./palette";
+import { ACCENTS, DARK_NEUTRALS, LIGHT_NEUTRALS, DARK_GLASS, LIGHT_GLASS, hexToRgba } from "./palette";
 import { usePreferencesStore } from "../store/usePreferencesStore";
 
 export type Theme = {
   isDark: boolean;
-  colors: typeof DARK_NEUTRALS & { accent: string; accentSoft: string };
+  colors: typeof DARK_NEUTRALS & { accent: string; accentSoft: string; accentGlass: string };
+  glass: typeof DARK_GLASS | typeof LIGHT_GLASS;
   radius: { sm: number; md: number; lg: number; xl: number; pill: number };
   spacing: (n: number) => number;
   fontScale: number;
@@ -35,7 +36,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     return {
       isDark,
-      colors: { ...neutrals, accent: accent.value, accentSoft: accent.soft },
+      colors: {
+        ...neutrals,
+        accent: accent.value,
+        accentSoft: accent.soft,
+        accentGlass: hexToRgba(accent.value, isDark ? 0.22 : 0.16),
+      },
+      glass: isDark ? DARK_GLASS : LIGHT_GLASS,
       radius: { sm: 8, md: 14, lg: 20, xl: 28, pill: 999 },
       spacing: (n: number) => n * 4,
       fontScale: scale,
