@@ -10,6 +10,11 @@ type Props = {
   refreshing?: boolean;
 };
 
+// Largeur max du contenu : au-delà (desktop web), on centre une colonne
+// façon app plutôt que d'étirer les cartes sur toute la largeur de la
+// fenêtre — sinon ça ressemble juste à un site web, pas à une vraie app.
+export const MAX_CONTENT_WIDTH = 560;
+
 export function Screen({ children, scroll = true, onRefresh, refreshing }: Props) {
   const theme = useTheme();
 
@@ -18,7 +23,7 @@ export function Screen({ children, scroll = true, onRefresh, refreshing }: Props
   if (!scroll) {
     return (
       <SafeAreaView style={style} edges={["top", "left", "right"]}>
-        <View style={styles.flex}>{children}</View>
+        <View style={[styles.flex, styles.centerColumn]}>{children}</View>
       </SafeAreaView>
     );
   }
@@ -27,7 +32,11 @@ export function Screen({ children, scroll = true, onRefresh, refreshing }: Props
     <SafeAreaView style={style} edges={["top", "left", "right"]}>
       <ScrollView
         style={styles.flex}
-        contentContainerStyle={{ padding: theme.spacing(4), paddingBottom: theme.spacing(24) }}
+        contentContainerStyle={{
+          padding: theme.spacing(4),
+          paddingBottom: theme.spacing(24),
+          alignItems: "center",
+        }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           onRefresh ? (
@@ -39,7 +48,7 @@ export function Screen({ children, scroll = true, onRefresh, refreshing }: Props
           ) : undefined
         }
       >
-        {children}
+        <View style={styles.centerColumn}>{children}</View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -47,4 +56,5 @@ export function Screen({ children, scroll = true, onRefresh, refreshing }: Props
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  centerColumn: { width: "100%", maxWidth: MAX_CONTENT_WIDTH, alignSelf: "center" },
 });
