@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from "react";
+import React, { useEffect, useCallback, useMemo, useState } from "react";
 import { View, Pressable } from "react-native";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSessionStore } from "../../src/store/useSessionStore";
@@ -8,9 +8,36 @@ import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { Card } from "../../src/components/ui/Card";
 import { Icon } from "../../src/components/ui/Icon";
+import { SegmentedControl } from "../../src/components/ui/SegmentedControl";
 import { colorForSubject } from "../../src/theme/palette";
 import { formatDayLabel } from "../../src/lib/format";
 import type { Assignment } from "pawnote";
+
+// Pronote donne un vrai signal de difficulté par devoir (mis par le prof) et
+// une durée estimée. On s'en sert pour un classement par importance honnête
+// -- pas de note inventée, juste ces deux signaux + l'urgence de la date.
+function difficultyLabel(d: number): string | null {
+  if (d === 1) return "Facile";
+  if (d === 2) return "Moyen";
+  if (d === 3) return "Difficile";
+  return null;
+}
+
+function daysUntil(deadline: Date): number {
+  const now = new Date();
+  const ms = new Date(deadline).setHours(0, 0, 0, 0) - new Date(now).setHours(0, 0, 0, 0);
+  return Math.round(ms / (24 * 60 * 60 * 1000));
+}
+
+function importanceScore(a: Assignment): number {
+  const urgencyDays = Math.max(0, daysUntil(a.deadline));
+  const urgencyScore = Math.max(0, 10 - urgencyDays); // dû aujourd'hui/demain = urgent
+  const difficultyScore = (a.difficulty ?? 0) * 3; // 0 à 9
+  const lengthScore = a.length ? Math.min(3, a.length / 30) : 0; // devoirs longs comptent un peu plus
+  return urgencyScore + difficultyScore + lengthScore;
+}
+
+type SortMode = "date" | "importance";
 
 export default function DevoirsScreen() {
   const theme = useTheme();
@@ -18,6 +45,7 @@ export default function DevoirsScreen() {
   const isDemo = useSessionStore((s) => s.isDemo);
   const { assignments, loading, refreshAll, toggleAssignmentDone } = useDataStore();
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
+  const [sortMode, setSortMode] = useState<SortMode>("date");
 
   const sync = useCallback(() => {
     if (session) refreshAll(session);
@@ -39,6 +67,14 @@ export default function DevoirsScreen() {
     );
   }, [assignments]);
 
+  const byImportance = useMemo(() => {
+    const todo = assignments.filter((a) => !a.done);
+    const done = assignments.filter((a) => a.done);
+    todo.sort((a, b) => importanceScore(b) - importanceScore(a));
+    done.sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
+    return [...todo, ...done];
+  }, [assignments]);
+
   const remaining = assignments.filter((a) => !a.done).length;
 
   return (
@@ -46,9 +82,22 @@ export default function DevoirsScreen() {
       <T variant="hero" style={{ marginBottom: 4 }}>
         Devoirs
       </T>
-      <T variant="body" tone="secondary" style={{ marginBottom: theme.spacing(6) }}>
+      <T variant="body" tone="secondary" style={{ marginBottom: theme.spacing(4) }}>
         {remaining === 0 ? "Tout est fait, bravo." : `${remaining} devoir${remaining > 1 ? "s" : ""} à faire`}
       </T>
+
+      {assignments.length > 0 ? (
+        <View style={{ marginBottom: theme.spacing(5) }}>
+          <SegmentedControl
+            value={sortMode}
+            onChange={setSortMode}
+            options={[
+              { value: "date", label: "Par date" },
+              { value: "importance", label: "Par importance" },
+            ]}
+          />
+        </View>
+      ) : null}
 
       {groups.length === 0 ? (
         <Card>
@@ -56,6 +105,18 @@ export default function DevoirsScreen() {
             Rien à rendre pour l'instant.
           </T>
         </Card>
+      ) : sortMode === "importance" ? (
+        <View style={{ gap: theme.spacing(2.5) }}>
+          {byImportance.map((a) => (
+            <AssignmentRow
+              key={a.id}
+              assignment={a}
+              color={colorForSubject(a.subject.name, subjectColors)}
+              onToggle={() => toggleAssignmentDone(session, a.id, !a.done)}
+              showDate
+            />
+          ))}
+        </View>
       ) : (
         <View style={{ gap: theme.spacing(6) }}>
           {groups.map(([dateKey, items]) => (
@@ -85,12 +146,21 @@ function AssignmentRow({
   assignment,
   color,
   onToggle,
+  showDate = false,
 }: {
   assignment: Assignment;
   color: string;
   onToggle: () => void;
+  showDate?: boolean;
 }) {
   const theme = useTheme();
+  const difficulty = difficultyLabel(assignment.difficulty as unknown as number);
+  const metaBits = [
+    showDate ? formatDayLabel(assignment.deadline) : null,
+    assignment.length ? `~${assignment.length} min` : null,
+    difficulty,
+  ].filter(Boolean);
+
   return (
     <Card padded style={{ opacity: assignment.done ? 0.55 : 1 }}>
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: theme.spacing(3) }}>
@@ -114,9 +184,9 @@ function AssignmentRow({
           >
             {assignment.description}
           </T>
-          {assignment.length ? (
-            <T variant="caption" tone="tertiary" style={{ marginTop: 2 }}>
-              ~{assignment.length} min
+          {metaBits.length > 0 ? (
+            <T variant="caption" tone="tertiary" style={{ marginTop: 2, textTransform: "capitalize" }}>
+              {metaBits.join(" · ")}
             </T>
           ) : null}
         </View>

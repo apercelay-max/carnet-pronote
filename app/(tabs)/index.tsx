@@ -1,5 +1,5 @@
-import React, { useEffect, useCallback } from "react";
-import { View } from "react-native";
+import React, { useEffect, useCallback, useState } from "react";
+import { View, Pressable } from "react-native";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSessionStore } from "../../src/store/useSessionStore";
 import { useDataStore } from "../../src/store/useDataStore";
@@ -10,7 +10,7 @@ import { Card } from "../../src/components/ui/Card";
 import { Icon } from "../../src/components/ui/Icon";
 import { ProgressRing } from "../../src/components/ui/ProgressRing";
 import { colorForSubject } from "../../src/theme/palette";
-import { formatGradeValue, formatTime, gradeOn20 } from "../../src/lib/format";
+import { formatGradeValue, formatTime, gradeOn20, formatDayLabel } from "../../src/lib/format";
 import { GradeValue } from "pawnote";
 
 export default function DashboardScreen() {
@@ -168,6 +168,53 @@ function Widget({ id, grades, notebookData, timetable, assignments, subjectColor
     );
   }
 
+  if (id === "controlesAVenir") {
+    // Pronote marque directement sur l'emploi du temps les cours où il y aura
+    // un contrôle (`test: true`) -- signal réel donné par le prof, rien
+    // d'inventé ici.
+    const now = new Date();
+    const upcoming = (timetable?.classes ?? [])
+      .filter((c: any) => c.is === "lesson" && c.test && c.startDate > now)
+      .sort((a: any, b: any) => a.startDate - b.startDate)
+      .slice(0, 4);
+
+    return (
+      <Card>
+        <T variant="subtitle" style={{ marginBottom: theme.spacing(3) }}>
+          Contrôles à venir
+        </T>
+        {upcoming.length === 0 ? (
+          <T variant="body" tone="secondary">
+            Aucun contrôle annoncé pour l'instant.
+          </T>
+        ) : (
+          <View style={{ gap: theme.spacing(3) }}>
+            {upcoming.map((c: any) => (
+              <View key={c.id} style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing(3) }}>
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: colorForSubject(c.subject?.name ?? "?", subjectColors),
+                  }}
+                />
+                <View style={{ flex: 1 }}>
+                  <T variant="body" numberOfLines={1}>
+                    {c.subject?.name ?? "Cours"}
+                  </T>
+                  <T variant="caption" tone="secondary" numberOfLines={1} style={{ textTransform: "capitalize" }}>
+                    {formatDayLabel(c.startDate)} · {formatTime(c.startDate)}
+                  </T>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </Card>
+    );
+  }
+
   if (id === "dernieresNotes") {
     const latest = [...(grades?.grades ?? [])]
       .sort((a: any, b: any) => b.date - a.date)
@@ -209,22 +256,94 @@ function Widget({ id, grades, notebookData, timetable, assignments, subjectColor
   }
 
   if (id === "vieScolaire") {
-    const obsCount = notebookData?.observations?.length ?? 0;
-    const absCount = notebookData?.absences?.length ?? 0;
-    return (
-      <Card>
-        <T variant="subtitle" style={{ marginBottom: theme.spacing(3) }}>
-          Vie scolaire
-        </T>
-        <View style={{ flexDirection: "row", gap: theme.spacing(6) }}>
-          <Stat icon="bell" value={obsCount} label="observations" />
-          <Stat icon="warning" value={absCount} label="absences" />
-        </View>
-      </Card>
-    );
+    return <VieScolaireWidget notebookData={notebookData} />;
   }
 
   return null;
+}
+
+function VieScolaireWidget({ notebookData }: any) {
+  const theme = useTheme();
+  const [expanded, setExpanded] = useState(false);
+
+  const obsCount = notebookData?.observations?.length ?? 0;
+  const absCount = notebookData?.absences?.length ?? 0;
+  const delayCount = notebookData?.delays?.length ?? 0;
+  const punishCount = notebookData?.punishments?.length ?? 0;
+  const total = obsCount + absCount + delayCount + punishCount;
+
+  const items = expanded
+    ? [
+        ...(notebookData?.observations ?? []).map((o: any) => ({
+          id: o.id,
+          icon: "bell",
+          date: o.date,
+          text: o.name,
+          sub: o.subject?.name,
+        })),
+        ...(notebookData?.absences ?? []).map((a: any) => ({
+          id: a.id,
+          icon: "warning",
+          date: a.startDate,
+          text: a.justified ? "Absence justifiée" : "Absence non justifiée",
+          sub: a.reason,
+        })),
+        ...(notebookData?.delays ?? []).map((d: any) => ({
+          id: d.id,
+          icon: "clock",
+          date: d.date,
+          text: `Retard de ${d.minutes} min${d.justified ? " (justifié)" : ""}`,
+          sub: d.reason,
+        })),
+        ...(notebookData?.punishments ?? []).map((p: any) => ({
+          id: p.id,
+          icon: "warning",
+          date: p.dateGiven,
+          text: p.title,
+          sub: p.reasons?.[0],
+        })),
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    : [];
+
+  return (
+    <Card onPress={total > 0 ? () => setExpanded((e) => !e) : undefined}>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: theme.spacing(3) }}>
+        <T variant="subtitle" style={{ flex: 1 }}>
+          Vie scolaire
+        </T>
+        {total > 0 ? (
+          <Icon name={expanded ? "chevronUp" : "chevronDown"} size={16} color={theme.colors.textTertiary} />
+        ) : null}
+      </View>
+      <View style={{ flexDirection: "row", gap: theme.spacing(5), flexWrap: "wrap" }}>
+        <Stat icon="bell" value={obsCount} label="observations" />
+        <Stat icon="warning" value={absCount} label="absences" />
+        <Stat icon="clock" value={delayCount} label="retards" />
+        <Stat icon="warning" value={punishCount} label="punitions" />
+      </View>
+
+      {expanded && items.length > 0 ? (
+        <View style={{ marginTop: theme.spacing(4), gap: theme.spacing(3), borderTopWidth: 1, borderTopColor: theme.colors.borderSoft, paddingTop: theme.spacing(3) }}>
+          {items.map((it) => (
+            <View key={it.id} style={{ flexDirection: "row", gap: theme.spacing(3), alignItems: "flex-start" }}>
+              <View style={{ marginTop: 2 }}>
+                <Icon name={it.icon as any} size={14} color={theme.colors.textTertiary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <T variant="body" numberOfLines={2}>
+                  {it.text}
+                </T>
+                <T variant="caption" tone="tertiary" style={{ textTransform: "capitalize" }}>
+                  {formatDayLabel(it.date)}
+                  {it.sub ? ` · ${it.sub}` : ""}
+                </T>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </Card>
+  );
 }
 
 function Stat({ icon, value, label }: any) {
