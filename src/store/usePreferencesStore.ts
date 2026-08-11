@@ -12,6 +12,7 @@ export type WidgetId =
   | "prochainCours"
   | "moyenneGenerale"
   | "devoirsAVenir"
+  | "controlesAVenir"
   | "dernieresNotes"
   | "vieScolaire";
 
@@ -19,6 +20,7 @@ export const WIDGET_LABELS: Record<WidgetId, string> = {
   prochainCours: "Prochain cours",
   moyenneGenerale: "Moyenne générale",
   devoirsAVenir: "Devoirs à venir",
+  controlesAVenir: "Contrôles à venir",
   dernieresNotes: "Dernières notes",
   vieScolaire: "Vie scolaire",
 };
@@ -27,9 +29,21 @@ const DEFAULT_WIDGET_ORDER: WidgetId[] = [
   "prochainCours",
   "moyenneGenerale",
   "devoirsAVenir",
+  "controlesAVenir",
   "dernieresNotes",
   "vieScolaire",
 ];
+
+// Complète un ordre de widgets persisté (ancienne version de l'appli) avec
+// les widgets ajoutés depuis -> on garde l'ordre choisi par la personne pour
+// les widgets existants, et on ajoute les nouveaux à la fin plutôt que de les
+// faire disparaître silencieusement.
+function backfillWidgetOrder(persisted: WidgetId[] | undefined): WidgetId[] {
+  if (!persisted) return DEFAULT_WIDGET_ORDER;
+  const known = persisted.filter((id) => DEFAULT_WIDGET_ORDER.includes(id));
+  const missing = DEFAULT_WIDGET_ORDER.filter((id) => !known.includes(id));
+  return [...known, ...missing];
+}
 
 // Les 5 catégories de la barre du bas correspondent chacune à un vrai écran
 // (fichier de route) : on ne peut pas en créer de nouvelles à la volée, mais
@@ -175,6 +189,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         // Les personnes qui avaient déjà l'app avant l'ajout des styles
         // n'ont pas styleId dans leur storage persistant -> Aurora par défaut.
         styleId: (persisted as any)?.styleId ?? current.styleId,
+        widgetOrder: backfillWidgetOrder((persisted as any)?.widgetOrder),
       }),
     }
   )

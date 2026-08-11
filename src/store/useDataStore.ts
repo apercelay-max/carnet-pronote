@@ -58,7 +58,11 @@ export const useDataStore = create<DataState>((set) => ({
       const [grades, notebookData, timetable, assignments] = await Promise.all([
         fetchGrades(session),
         fetchNotebook(session),
-        fetchTimetableRange(session, startOfWeek(now), endOfWeek(now)),
+        // Même horizon que les devoirs (21 jours) : Pronote marque les cours
+        // qui auront un contrôle (`test: true`) directement sur l'emploi du
+        // temps, donc on a besoin de voir plus loin que la semaine en cours
+        // pour construire une vraie liste de "contrôles à venir".
+        fetchTimetableRange(session, startOfWeek(now), in21Days),
         fetchAssignmentsRange(session, now, in21Days),
       ]);
 
