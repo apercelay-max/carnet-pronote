@@ -52,7 +52,7 @@ export default function LoginScreen() {
               borderRadius: theme.radius.lg,
               backgroundColor: theme.colors.accentGlass,
               borderWidth: 1,
-              borderColor: theme.glass.border,
+              borderColor: theme.colors.border,
               alignItems: "center",
               justifyContent: "center",
               marginBottom: theme.spacing(4),
