@@ -13,6 +13,7 @@ import {
 } from "../../src/store/usePreferencesStore";
 import { ACCENTS, ACCENT_ORDER, SUBJECT_PALETTE, colorForSubject } from "../../src/theme/palette";
 import { STYLE_ORDER, STYLE_META } from "../../src/theme/styles";
+import { allKnownSubjects } from "../../src/lib/subjects";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { Card } from "../../src/components/ui/Card";
@@ -26,7 +27,7 @@ export default function ReglagesScreen() {
   const displayName = useSessionStore((s) => s.displayName);
   const isDemo = useSessionStore((s) => s.isDemo);
   const logout = useSessionStore((s) => s.logout);
-  const { grades } = useDataStore();
+  const { grades, timetable, assignments, evaluations, resources } = useDataStore();
 
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const setThemeMode = usePreferencesStore((s) => s.setThemeMode);
@@ -43,6 +44,9 @@ export default function ReglagesScreen() {
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
   const setSubjectColor = usePreferencesStore((s) => s.setSubjectColor);
   const resetSubjectColor = usePreferencesStore((s) => s.resetSubjectColor);
+  const subjectMaterials = usePreferencesStore((s) => s.subjectMaterials);
+  const addSubjectMaterial = usePreferencesStore((s) => s.addSubjectMaterial);
+  const removeSubjectMaterial = usePreferencesStore((s) => s.removeSubjectMaterial);
 
   const tabOrder = usePreferencesStore((s) => s.tabOrder);
   const hiddenTabs = usePreferencesStore((s) => s.hiddenTabs);
@@ -54,11 +58,24 @@ export default function ReglagesScreen() {
   const setTabIcon = usePreferencesStore((s) => s.setTabIcon);
 
   const [iconPickerTab, setIconPickerTab] = useState<TabId | null>(null);
+  const [materialsOpenFor, setMaterialsOpenFor] = useState<string | null>(null);
+  const [materialDraft, setMaterialDraft] = useState("");
 
   const subjects = useMemo(
     () => (grades?.subjectsAverages ?? []).map((s) => s.subject.name),
     [grades]
   );
+
+  const allSubjects = useMemo(
+    () => allKnownSubjects({ grades, timetable, assignments, evaluations, resources }),
+    [grades, timetable, assignments, evaluations, resources]
+  );
+
+  function submitMaterialDraft(subjectName: string) {
+    const trimmed = materialDraft.trim();
+    if (trimmed) addSubjectMaterial(subjectName, trimmed);
+    setMaterialDraft("");
+  }
 
   function move(id: WidgetId, dir: -1 | 1) {
     const idx = widgetOrder.indexOf(id);
@@ -377,6 +394,118 @@ export default function ReglagesScreen() {
             );
           })}
         </View>
+      </Card>
+
+      <SectionTitle icon="backpack" title="Sac de cours" />
+      <Card style={{ marginBottom: theme.spacing(6) }}>
+        <T variant="caption" tone="secondary" style={{ marginBottom: theme.spacing(3) }}>
+          Indique le matériel à prendre pour chaque matière : le widget « Sac de cours » de
+          l'accueil s'en sert avec ton vrai emploi du temps pour préparer le sac du prochain jour
+          de cours. Rien n'est deviné — tant qu'une matière n'a rien ici, elle reste marquée « pas
+          encore configuré ».
+        </T>
+        {allSubjects.length === 0 ? (
+          <T variant="body" tone="secondary">
+            Connecte-toi pour configurer tes matières.
+          </T>
+        ) : (
+          <View>
+            {allSubjects.map((s, i) => {
+              const items = subjectMaterials[s.name] ?? [];
+              const open = materialsOpenFor === s.name;
+              return (
+                <View
+                  key={s.id}
+                  style={{
+                    paddingVertical: theme.spacing(3),
+                    borderTopWidth: i === 0 ? 0 : 1,
+                    borderTopColor: theme.colors.borderSoft,
+                  }}
+                >
+                  <Pressable
+                    onPress={() => {
+                      setMaterialsOpenFor(open ? null : s.name);
+                      setMaterialDraft("");
+                    }}
+                    style={{ flexDirection: "row", alignItems: "center" }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <T variant="body" weight="medium">
+                        {s.name}
+                      </T>
+                      <T variant="caption" tone={items.length ? "secondary" : "tertiary"} numberOfLines={1}>
+                        {items.length ? items.join(" · ") : "Pas encore configuré"}
+                      </T>
+                    </View>
+                    <Icon name={open ? "chevronUp" : "chevronDown"} size={16} color={theme.colors.textTertiary} />
+                  </Pressable>
+
+                  {open ? (
+                    <View style={{ marginTop: theme.spacing(3), gap: theme.spacing(2) }}>
+                      {items.length > 0 ? (
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                          {items.map((item) => (
+                            <Pressable
+                              key={item}
+                              onPress={() => removeSubjectMaterial(s.name, item)}
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 6,
+                                paddingVertical: 6,
+                                paddingHorizontal: 10,
+                                borderRadius: theme.radius.pill,
+                                backgroundColor: theme.colors.accentGlass,
+                              }}
+                            >
+                              <T variant="caption" tone="accent">
+                                {item}
+                              </T>
+                              <Icon name="close" size={11} color={theme.colors.accent} />
+                            </Pressable>
+                          ))}
+                        </View>
+                      ) : null}
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <TextInput
+                          value={materialDraft}
+                          onChangeText={setMaterialDraft}
+                          onSubmitEditing={() => submitMaterialDraft(s.name)}
+                          placeholder="Ajouter (ex. cahier, calculatrice…)"
+                          placeholderTextColor={theme.colors.textTertiary}
+                          style={{
+                            flex: 1,
+                            fontSize: theme.type.body,
+                            color: theme.colors.textPrimary,
+                            paddingVertical: 8,
+                            paddingHorizontal: 10,
+                            borderRadius: theme.radius.sm,
+                            borderWidth: 1,
+                            borderColor: theme.colors.borderSoft,
+                            backgroundColor: theme.colors.surfaceElevated,
+                          }}
+                        />
+                        <Pressable
+                          onPress={() => submitMaterialDraft(s.name)}
+                          style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: 17,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: theme.colors.accent,
+                          }}
+                        >
+                          <Icon name="plus" size={16} color="#0B0D12" />
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        )}
       </Card>
 
       <SectionTitle icon="notes" title="Couleurs des matières" />

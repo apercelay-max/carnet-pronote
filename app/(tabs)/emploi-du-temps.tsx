@@ -10,6 +10,20 @@ import { Card } from "../../src/components/ui/Card";
 import { Icon } from "../../src/components/ui/Icon";
 import { colorForSubject } from "../../src/theme/palette";
 import { formatTime, formatDayOfWeekLetter } from "../../src/lib/format";
+import { ResourceContentCategory } from "pawnote";
+
+const CATEGORY_LABELS: Record<number, string> = {
+  [ResourceContentCategory.LESSON]: "Cours",
+  [ResourceContentCategory.CORRECTION]: "Correction",
+  [ResourceContentCategory.DST]: "Devoir sur table",
+  [ResourceContentCategory.ORAL_INTERROGATION]: "Interrogation orale",
+  [ResourceContentCategory.TD]: "Travaux dirigés",
+  [ResourceContentCategory.TP]: "Travaux pratiques",
+  [ResourceContentCategory.EVALUATION_COMPETENCES]: "Évaluation de compétences",
+  [ResourceContentCategory.EPI]: "EPI",
+  [ResourceContentCategory.AP]: "AP",
+  [ResourceContentCategory.VISIO]: "Visio",
+};
 
 function weekDates(): Date[] {
   const now = new Date();
@@ -32,12 +46,22 @@ export default function TimetableScreen() {
   const theme = useTheme();
   const session = useSessionStore((s) => s.session);
   const isDemo = useSessionStore((s) => s.isDemo);
-  const { timetable, loading, refreshAll } = useDataStore();
+  const { timetable, resources, loading, refreshAll } = useDataStore();
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
 
   const days = useMemo(weekDates, []);
   const todayIndex = days.findIndex((d) => isSameDay(d, new Date()));
   const [selected, setSelected] = useState(todayIndex >= 0 ? todayIndex : 0);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Un contenu de cours correspond à un créneau précis de l'emploi du temps :
+  // même matière, même horaire. Si Pronote n'a rien posté pour ce cours, pas
+  // de contenu -- on ne montre le petit indicateur que si un match existe.
+  function resourceForLesson(c: any) {
+    return (resources ?? []).find(
+      (r: any) => r.subject?.id === c.subject?.id && r.startDate.getTime() === c.startDate.getTime()
+    );
+  }
 
   const sync = useCallback(() => {
     if (session) refreshAll(session);
@@ -118,8 +142,16 @@ export default function TimetableScreen() {
               const name = isLesson ? c.subject?.name ?? "Cours" : c.is === "activity" ? c.title : "Retenue";
               const color = colorForSubject(name, subjectColors);
               const canceled = isLesson && c.canceled;
+              const resource = isLesson ? resourceForLesson(c) : undefined;
+              const hasContent = !!resource?.contents?.length;
+              const expanded = expandedId === c.id;
               return (
-                <Card key={c.id} padded style={{ opacity: canceled ? 0.55 : 1 }}>
+                <Card
+                  key={c.id}
+                  padded
+                  style={{ opacity: canceled ? 0.55 : 1 }}
+                  onPress={hasContent ? () => setExpandedId(expanded ? null : c.id) : undefined}
+                >
                   <View style={{ flexDirection: "row" }}>
                     <View style={{ width: 58 }}>
                       <T variant="caption" weight="semibold">
@@ -141,9 +173,45 @@ export default function TimetableScreen() {
                         ) : null}
                         {c.teacherNames?.[0] ? <MetaTag icon="user" text={c.teacherNames[0]} /> : null}
                         {isLesson && c.test ? <MetaTag icon="warning" text="Évaluation" /> : null}
+                        {hasContent ? <MetaTag icon="book" text="Contenu du cours" /> : null}
                       </View>
                     </View>
+                    {hasContent ? (
+                      <View style={{ justifyContent: "center" }}>
+                        <Icon name={expanded ? "chevronUp" : "chevronDown"} size={14} color={theme.colors.textTertiary} />
+                      </View>
+                    ) : null}
                   </View>
+
+                  {expanded && resource ? (
+                    <View
+                      style={{
+                        marginTop: theme.spacing(3),
+                        paddingTop: theme.spacing(3),
+                        borderTopWidth: 1,
+                        borderTopColor: theme.colors.borderSoft,
+                        gap: theme.spacing(3),
+                      }}
+                    >
+                      {resource.contents.map((content: any) => (
+                        <View key={content.id}>
+                          <T variant="caption" tone="accent" weight="semibold" style={{ marginBottom: 2 }}>
+                            {CATEGORY_LABELS[content.category] ?? "Contenu"}
+                          </T>
+                          {content.title ? (
+                            <T variant="body" weight="medium">
+                              {content.title}
+                            </T>
+                          ) : null}
+                          {content.description ? (
+                            <T variant="caption" tone="secondary" style={{ marginTop: 2 }}>
+                              {content.description}
+                            </T>
+                          ) : null}
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
                 </Card>
               );
             })}

@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useMemo } from "react";
 import { View } from "react-native";
+import { useRouter } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSessionStore } from "../../src/store/useSessionStore";
 import { useDataStore } from "../../src/store/useDataStore";
@@ -7,12 +8,14 @@ import { usePreferencesStore } from "../../src/store/usePreferencesStore";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { Card } from "../../src/components/ui/Card";
+import { Icon } from "../../src/components/ui/Icon";
 import { ProgressRing } from "../../src/components/ui/ProgressRing";
 import { colorForSubject } from "../../src/theme/palette";
 import { formatGradeValue, formatDayLabel } from "../../src/lib/format";
 
 export default function NotesScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const session = useSessionStore((s) => s.session);
   const isDemo = useSessionStore((s) => s.isDemo);
   const { grades, loading, refreshAll } = useDataStore();
@@ -47,6 +50,16 @@ export default function NotesScreen() {
             <Row label="Toi" value={formatGradeValue(overall)} accent />
             <Row label="Classe" value={formatGradeValue(grades?.classAverage)} />
           </View>
+        </View>
+      </Card>
+
+      <Card onPress={() => router.push("/competences")} style={{ marginBottom: theme.spacing(5) }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing(3) }}>
+          <Icon name="target" size={20} color={theme.colors.accent} />
+          <T variant="body" weight="medium" style={{ flex: 1 }}>
+            Compétences évaluées
+          </T>
+          <Icon name="chevronRight" size={16} color={theme.colors.textTertiary} />
         </View>
       </Card>
 

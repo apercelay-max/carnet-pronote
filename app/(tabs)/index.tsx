@@ -1,5 +1,6 @@
-import React, { useEffect, useCallback, useState } from "react";
+import React, { useEffect, useCallback, useMemo, useState } from "react";
 import { View, Pressable } from "react-native";
+import { useRouter } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSessionStore } from "../../src/store/useSessionStore";
 import { useDataStore } from "../../src/store/useDataStore";
@@ -11,6 +12,7 @@ import { Icon } from "../../src/components/ui/Icon";
 import { ProgressRing } from "../../src/components/ui/ProgressRing";
 import { colorForSubject } from "../../src/theme/palette";
 import { formatGradeValue, formatTime, gradeOn20, formatDayLabel } from "../../src/lib/format";
+import { nextSchoolDay } from "../../src/lib/sacDeCours";
 import { GradeValue } from "pawnote";
 
 export default function DashboardScreen() {
@@ -18,7 +20,8 @@ export default function DashboardScreen() {
   const session = useSessionStore((s) => s.session);
   const isDemo = useSessionStore((s) => s.isDemo);
   const displayName = useSessionStore((s) => s.displayName);
-  const { grades, notebookData, timetable, assignments, loading, refreshAll } = useDataStore();
+  const { grades, notebookData, timetable, assignments, evaluations, discussions, newsData, loading, refreshAll } =
+    useDataStore();
   const widgetOrder = usePreferencesStore((s) => s.widgetOrder);
   const hiddenWidgets = usePreferencesStore((s) => s.hiddenWidgets);
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
@@ -51,6 +54,9 @@ export default function DashboardScreen() {
             notebookData={notebookData}
             timetable={timetable}
             assignments={assignments}
+            evaluations={evaluations}
+            discussions={discussions}
+            newsData={newsData}
             subjectColors={subjectColors}
           />
         ))}
@@ -67,7 +73,7 @@ function greeting() {
   return "Bonsoir";
 }
 
-function Widget({ id, grades, notebookData, timetable, assignments, subjectColors }: any) {
+function Widget({ id, grades, notebookData, timetable, assignments, evaluations, discussions, newsData, subjectColors }: any) {
   const theme = useTheme();
 
   if (id === "moyenneGenerale") {
@@ -259,7 +265,262 @@ function Widget({ id, grades, notebookData, timetable, assignments, subjectColor
     return <VieScolaireWidget notebookData={notebookData} />;
   }
 
+  if (id === "sacDeCours") {
+    return <SacDeCoursWidget timetable={timetable} subjectColors={subjectColors} />;
+  }
+
+  if (id === "competences") {
+    return <CompetencesWidget evaluations={evaluations} subjectColors={subjectColors} />;
+  }
+
+  if (id === "messagerie") {
+    return <MessagerieWidget discussions={discussions} />;
+  }
+
+  if (id === "actualites") {
+    return <ActualitesWidget newsData={newsData} />;
+  }
+
   return null;
+}
+
+function SacDeCoursWidget({ timetable, subjectColors }: any) {
+  const theme = useTheme();
+  const router = useRouter();
+  const subjectMaterials = usePreferencesStore((s) => s.subjectMaterials);
+  const next = useMemo(() => nextSchoolDay(timetable), [timetable]);
+  const missingCount = next
+    ? next.subjects.filter((s) => !(subjectMaterials[s.name]?.length)).length
+    : 0;
+
+  return (
+    <Card>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: theme.spacing(3) }}>
+        <T variant="subtitle" style={{ flex: 1 }}>
+          Sac de cours
+        </T>
+        {next ? (
+          <T variant="caption" tone="secondary" style={{ textTransform: "capitalize" }}>
+            {formatDayLabel(next.date)}
+          </T>
+        ) : null}
+      </View>
+      {!next ? (
+        <T variant="body" tone="secondary">
+          Rien de prévu au-delà d'aujourd'hui pour l'instant.
+        </T>
+      ) : (
+        <View style={{ gap: theme.spacing(3) }}>
+          {next.subjects.map((s) => {
+            const items = subjectMaterials[s.name] ?? [];
+            return (
+              <View key={s.id} style={{ flexDirection: "row", gap: theme.spacing(3) }}>
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    marginTop: 6,
+                    backgroundColor: colorForSubject(s.name, subjectColors),
+                  }}
+                />
+                <View style={{ flex: 1 }}>
+                  <T variant="body" weight="medium" numberOfLines={1}>
+                    {s.name}
+                  </T>
+                  {items.length > 0 ? (
+                    <T variant="caption" tone="secondary" numberOfLines={2}>
+                      {items.join(" · ")}
+                    </T>
+                  ) : (
+                    <T variant="caption" tone="tertiary">
+                      Pas encore configuré
+                    </T>
+                  )}
+                </View>
+              </View>
+            );
+          })}
+          {missingCount > 0 ? (
+            <Pressable onPress={() => router.push("/reglages")} style={{ marginTop: theme.spacing(1) }}>
+              <T variant="caption" tone="accent">
+                Configurer le matériel dans Réglages →
+              </T>
+            </Pressable>
+          ) : null}
+        </View>
+      )}
+    </Card>
+  );
+}
+
+function CompetencesWidget({ evaluations, subjectColors }: any) {
+  const theme = useTheme();
+  const router = useRouter();
+  const latest = (evaluations ?? []).slice(0, 3);
+
+  return (
+    <Card onPress={() => router.push("/competences")}>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: theme.spacing(3) }}>
+        <T variant="subtitle" style={{ flex: 1 }}>
+          Compétences évaluées
+        </T>
+        <Icon name="chevronRight" size={16} color={theme.colors.textTertiary} />
+      </View>
+      {latest.length === 0 ? (
+        <T variant="body" tone="secondary">
+          Aucune évaluation de compétences pour l'instant.
+        </T>
+      ) : (
+        <View style={{ gap: theme.spacing(3) }}>
+          {latest.map((e: any) => (
+            <View key={e.id} style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing(3) }}>
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: colorForSubject(e.subject?.name ?? "?", subjectColors),
+                }}
+              />
+              <View style={{ flex: 1 }}>
+                <T variant="body" numberOfLines={1}>
+                  {e.subject?.name ?? "Matière"}
+                </T>
+                <T variant="caption" tone="secondary" numberOfLines={1}>
+                  {e.name}
+                </T>
+              </View>
+              <T variant="caption" tone="secondary">
+                {e.skills.length} compét.
+              </T>
+            </View>
+          ))}
+        </View>
+      )}
+    </Card>
+  );
+}
+
+function MessagerieWidget({ discussions }: any) {
+  const theme = useTheme();
+  const router = useRouter();
+  const items = discussions?.items ?? [];
+  const unread = items.reduce((sum: number, d: any) => sum + (d.numberOfMessagesUnread ?? 0), 0);
+  const latest = [...items].sort((a: any, b: any) => b.date.getTime() - a.date.getTime()).slice(0, 3);
+
+  return (
+    <Card onPress={() => router.push("/messagerie")}>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: theme.spacing(3) }}>
+        <T variant="subtitle" style={{ flex: 1 }}>
+          Messagerie
+        </T>
+        {unread > 0 ? <UnreadBadge count={unread} /> : null}
+        <View style={{ marginLeft: unread > 0 ? 8 : 0 }}>
+          <Icon name="chevronRight" size={16} color={theme.colors.textTertiary} />
+        </View>
+      </View>
+      {latest.length === 0 ? (
+        <T variant="body" tone="secondary">
+          Aucune discussion pour l'instant.
+        </T>
+      ) : (
+        <View style={{ gap: theme.spacing(3) }}>
+          {latest.map((d: any) => (
+            <View key={d.participantsMessageID} style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing(3) }}>
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: d.numberOfMessagesUnread > 0 ? theme.colors.accent : theme.colors.borderSoft,
+                }}
+              />
+              <View style={{ flex: 1 }}>
+                <T variant="body" weight={d.numberOfMessagesUnread > 0 ? "semibold" : "regular"} numberOfLines={1}>
+                  {d.recipientName ?? d.creator ?? "Discussion"}
+                </T>
+                <T variant="caption" tone="secondary" numberOfLines={1}>
+                  {d.subject}
+                </T>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </Card>
+  );
+}
+
+function ActualitesWidget({ newsData }: any) {
+  const theme = useTheme();
+  const router = useRouter();
+  const items = newsData?.items ?? [];
+  const unread = items.filter((n: any) => !n.read).length;
+  const latest = [...items].sort((a: any, b: any) => b.startDate.getTime() - a.startDate.getTime()).slice(0, 2);
+
+  return (
+    <Card onPress={() => router.push("/actualites")}>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: theme.spacing(3) }}>
+        <T variant="subtitle" style={{ flex: 1 }}>
+          Actualités
+        </T>
+        {unread > 0 ? <UnreadBadge count={unread} /> : null}
+        <View style={{ marginLeft: unread > 0 ? 8 : 0 }}>
+          <Icon name="chevronRight" size={16} color={theme.colors.textTertiary} />
+        </View>
+      </View>
+      {latest.length === 0 ? (
+        <T variant="body" tone="secondary">
+          Aucune actualité pour l'instant.
+        </T>
+      ) : (
+        <View style={{ gap: theme.spacing(3) }}>
+          {latest.map((n: any) => (
+            <View key={n.id} style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing(3) }}>
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: !n.read ? theme.colors.accent : theme.colors.borderSoft,
+                }}
+              />
+              <View style={{ flex: 1 }}>
+                <T variant="body" weight={!n.read ? "semibold" : "regular"} numberOfLines={1}>
+                  {n.title ?? "Actualité"}
+                </T>
+                <T variant="caption" tone="secondary" numberOfLines={1} style={{ textTransform: "capitalize" }}>
+                  {formatDayLabel(n.startDate)}
+                </T>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </Card>
+  );
+}
+
+function UnreadBadge({ count }: { count: number }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        minWidth: 20,
+        height: 20,
+        borderRadius: 10,
+        paddingHorizontal: 6,
+        backgroundColor: theme.colors.accent,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <T variant="caption" weight="semibold" style={{ color: "#0B0D12", fontSize: 11 }}>
+        {count}
+      </T>
+    </View>
+  );
 }
 
 function VieScolaireWidget({ notebookData }: any) {
