@@ -58,58 +58,6 @@ export function colorForSubject(name: string, overrides: Record<string, string>)
   return SUBJECT_PALETTE[index];
 }
 
-export const DARK_NEUTRALS = {
-  background: "#0B0D12",
-  backgroundElevated: "#0F1218",
-  surface: "#14171F",
-  surfaceElevated: "#1C202B",
-  border: "#262B38",
-  borderSoft: "#1B1F29",
-  textPrimary: "#F5F6FA",
-  textSecondary: "#9AA0AE",
-  textTertiary: "#5C6270",
-  danger: "#FF5B5B",
-  success: "#2DD4A7",
-  warning: "#FFB020",
-};
-
-export const LIGHT_NEUTRALS = {
-  background: "#F4F5F8",
-  backgroundElevated: "#EDEFF4",
-  surface: "#FFFFFF",
-  surfaceElevated: "#FFFFFF",
-  border: "#E4E6EC",
-  borderSoft: "#ECEEF3",
-  textPrimary: "#14171F",
-  textSecondary: "#666C7A",
-  textTertiary: "#9AA0AE",
-  danger: "#E0433A",
-  success: "#1FA987",
-  warning: "#C97D0A",
-};
-
-// Jetons "Liquid Glass" — surfaces translucides et floutées (BlurView + léger
-// dégradé + bordure lumineuse) façon verre dépoli, comme sur PPL Tracker.
-export const DARK_GLASS = {
-  tint: "dark" as const,
-  intensity: 46,
-  overlayFrom: "rgba(255,255,255,0.10)",
-  overlayTo: "rgba(255,255,255,0.02)",
-  border: "rgba(255,255,255,0.16)",
-  highlight: "rgba(255,255,255,0.4)",
-  shadowOpacity: 0.45,
-};
-
-export const LIGHT_GLASS = {
-  tint: "light" as const,
-  intensity: 72,
-  overlayFrom: "rgba(255,255,255,0.72)",
-  overlayTo: "rgba(255,255,255,0.34)",
-  border: "rgba(255,255,255,0.85)",
-  highlight: "rgba(255,255,255,0.95)",
-  shadowOpacity: 0.1,
-};
-
 export function hexToRgba(hex: string, alpha: number): string {
   const clean = hex.replace("#", "");
   const full = clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean;
