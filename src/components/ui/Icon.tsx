@@ -35,7 +35,11 @@ export type IconName =
   | "sparkle"
   | "school"
   | "bell"
-  | "text";
+  | "text"
+  | "backpack"
+  | "target"
+  | "chat"
+  | "megaphone";
 
 type Props = {
   name: IconName;
@@ -242,6 +246,33 @@ export function Icon({ name, size = 22, color, strokeWidth = 1.8 }: Props) {
           <Line x1="5" y1="6.5" x2="19" y2="6.5" {...common} />
           <Line x1="5" y1="12" x2="19" y2="12" {...common} />
           <Line x1="5" y1="17.5" x2="13" y2="17.5" {...common} />
+        </>
+      )}
+      {name === "backpack" && (
+        <>
+          <Path d="M7 9V6.5a5 5 0 0 1 10 0V9" {...common} />
+          <Path d="M5.5 9h13a1.5 1.5 0 0 1 1.5 1.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8.5A1.5 1.5 0 0 1 5.5 9Z" {...common} />
+          <Line x1="9" y1="13" x2="15" y2="13" {...common} />
+          <Path d="M9 21v-5h6v5" {...common} />
+        </>
+      )}
+      {name === "target" && (
+        <>
+          <Circle cx="12" cy="12" r="8.5" {...common} />
+          <Circle cx="12" cy="12" r="5" {...common} />
+          <Circle cx="12" cy="12" r="1.4" stroke="none" fill={color} />
+        </>
+      )}
+      {name === "chat" && (
+        <Path
+          d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4.5 4V16H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z"
+          {...common}
+        />
+      )}
+      {name === "megaphone" && (
+        <>
+          <Path d="M3 10v4a1.2 1.2 0 0 0 1.2 1.2H6l1 5h2l-1-5h1l9 4V6l-9 4H4.2A1.2 1.2 0 0 0 3 10Z" {...common} />
+          <Path d="M19 9v6" {...common} />
         </>
       )}
     </Svg>
