@@ -1,9 +1,6 @@
 import React from "react";
-import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Tabs, TabList, TabTrigger, TabSlot } from "expo-router/ui";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { TabButton } from "../../src/components/ui/TabButton";
 import { MAX_CONTENT_WIDTH } from "../../src/components/ui/Screen";
@@ -12,7 +9,8 @@ import { usePreferencesStore, TAB_DEFAULTS } from "../../src/store/usePreference
 export default function TabsLayout() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const g = theme.glass;
+  const { tabBar } = theme.structure;
+  const c = theme.colors;
 
   const tabOrder = usePreferencesStore((s) => s.tabOrder);
   const hiddenTabs = usePreferencesStore((s) => s.hiddenTabs);
@@ -23,43 +21,39 @@ export default function TabsLayout() {
   // sinon, plus aucun moyen de rouvrir les réglages pour le réafficher.
   const visibleTabs = tabOrder.filter((id) => id === "reglages" || !hiddenTabs.includes(id));
 
+  const isFloating = tabBar.treatment === "floating-pill";
+
   // Important : <TabList> doit être un enfant DIRECT de <Tabs> (au même
   // niveau que <TabSlot />), sinon expo-router/ui ne détecte aucun
   // <TabTrigger> (il ne traverse que les Fragments et TabList, pas une
   // <View> intermédiaire) -> plus aucun écran trouvé pour le navigateur.
-  // Le flou/dégradé sont mis EN PREMIER À L'INTÉRIEUR de <TabList> (pas
-  // autour) : ce sont des enfants non-TabTrigger que le détecteur ignore
-  // silencieusement sans perturber la détection des vrais TabTrigger.
+  //
+  // Barre 100% opaque (backgroundColor: c.surface) — pas de flou/dégradé,
+  // le style se distingue par la forme (radius, bordure, ombre) et par la
+  // forme de l'indicateur actif dans TabButton.
   return (
-    <Tabs style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <Tabs style={{ flex: 1, backgroundColor: c.background }}>
       <TabSlot />
       <TabList
         style={{
-          position: "relative",
-          overflow: "hidden",
           flexDirection: "row",
+          overflow: "hidden",
           alignSelf: "center",
           width: "100%",
           maxWidth: MAX_CONTENT_WIDTH - 20,
-          borderRadius: theme.radius.xl,
+          backgroundColor: c.surface,
+          borderRadius: tabBar.radius,
           marginHorizontal: 14,
           marginBottom: Math.max(insets.bottom, 12),
-          borderWidth: 1,
-          borderColor: g.border,
+          borderWidth: isFloating ? 0 : 1,
+          borderColor: c.border,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: g.shadowOpacity,
+          shadowOpacity: isFloating ? 0.12 : 0,
           shadowRadius: 26,
-          elevation: 10,
+          elevation: isFloating ? 10 : 0,
         }}
       >
-        <BlurView intensity={g.intensity} tint={g.tint} style={StyleSheet.absoluteFill} />
-        <LinearGradient
-          colors={[g.overlayFrom, g.overlayTo]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
         {visibleTabs.map((id) => {
           const defaults = TAB_DEFAULTS[id];
           return (

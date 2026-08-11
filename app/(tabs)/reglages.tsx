@@ -12,6 +12,7 @@ import {
   TAB_ICON_CHOICES,
 } from "../../src/store/usePreferencesStore";
 import { ACCENTS, ACCENT_ORDER, SUBJECT_PALETTE, colorForSubject } from "../../src/theme/palette";
+import { STYLE_ORDER, STYLE_META } from "../../src/theme/styles";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { Card } from "../../src/components/ui/Card";
@@ -29,6 +30,8 @@ export default function ReglagesScreen() {
 
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const setThemeMode = usePreferencesStore((s) => s.setThemeMode);
+  const styleId = usePreferencesStore((s) => s.styleId);
+  const setStyle = usePreferencesStore((s) => s.setStyle);
   const accent = usePreferencesStore((s) => s.accent);
   const setAccent = usePreferencesStore((s) => s.setAccent);
   const fontScale = usePreferencesStore((s) => s.fontScale);
@@ -114,6 +117,68 @@ export default function ReglagesScreen() {
         </View>
         <View style={{ marginTop: theme.spacing(4) }}>
           <Button label="Se déconnecter" variant="secondary" onPress={confirmLogout} icon="close" />
+        </View>
+      </Card>
+
+      <SectionTitle icon="sparkle" title="Style" />
+      <Card style={{ marginBottom: theme.spacing(6) }}>
+        <T variant="caption" tone="secondary" style={{ marginBottom: theme.spacing(3) }}>
+          Change complètement l'habillage de l'appli — formes, cartes, barre du bas. Chaque style
+          existe en clair et en sombre, indépendamment du réglage Thème ci-dessous.
+        </T>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing(3) }}>
+          {STYLE_ORDER.map((id) => {
+            const meta = STYLE_META[id];
+            const active = styleId === id;
+            return (
+              <Pressable
+                key={id}
+                onPress={() => setStyle(id)}
+                style={{
+                  flexBasis: "47%",
+                  flexGrow: 1,
+                  borderRadius: theme.radius.md,
+                  borderWidth: active ? 2 : 1,
+                  borderColor: active ? theme.colors.accent : theme.colors.borderSoft,
+                  padding: theme.spacing(3),
+                  backgroundColor: theme.colors.surfaceElevated,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: theme.spacing(2),
+                  }}
+                >
+                  <View style={{ flexDirection: "row" }}>
+                    {meta.swatch.map((color, i) => (
+                      <View
+                        key={i}
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          backgroundColor: color,
+                          borderWidth: 1.5,
+                          borderColor: theme.colors.surfaceElevated,
+                          marginLeft: i === 0 ? 0 : -8,
+                        }}
+                      />
+                    ))}
+                  </View>
+                  {active ? <Icon name="checkCircle" size={18} color={theme.colors.accent} /> : null}
+                </View>
+                <T variant="body" weight="semibold">
+                  {meta.label}
+                </T>
+                <T variant="caption" tone="secondary" style={{ marginTop: 2 }}>
+                  {meta.description}
+                </T>
+              </Pressable>
+            );
+          })}
         </View>
       </Card>
 
