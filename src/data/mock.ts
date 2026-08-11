@@ -109,6 +109,9 @@ export const MOCK_TIMETABLE: Timetable = {
     lesson("t6", S.hg, todayAt(9, 0, 1), 55, "Salle 112", "M. Petit", { canceled: true }),
     lesson("t7", S.physique, todayAt(10, 10, 1), 55, "Labo 1", "M. Nasser"),
     lesson("t8", S.espagnol, todayAt(13, 0, 1), 55, "Salle 207", "Sra. Molina"),
+    lesson("t9", S.physique, todayAt(10, 10, 4), 55, "Labo 1", "M. Nasser", { test: true }),
+    lesson("t10", S.hg, todayAt(9, 0, 8), 55, "Salle 112", "M. Petit", { test: true }),
+    lesson("t11", S.maths, todayAt(8, 0, 13), 55, "Salle 204", "M. Dubreuil", { test: true }),
   ],
 };
 
@@ -118,7 +121,8 @@ function assignment(
   description: string,
   dayOffset: number,
   done = false,
-  minutes = 20
+  minutes = 20,
+  difficulty: AssignmentDifficulty = AssignmentDifficulty.Medium
 ): Assignment {
   return {
     id,
@@ -128,7 +132,7 @@ function assignment(
     done,
     deadline: todayAt(8, 0, dayOffset),
     attachments: [],
-    difficulty: AssignmentDifficulty.Medium,
+    difficulty,
     length: minutes,
     themes: [],
     return: { kind: AssignmentReturnKind.None, canUpload: false },
@@ -136,17 +140,29 @@ function assignment(
 }
 
 export const MOCK_ASSIGNMENTS: Assignment[] = [
-  assignment("a1", S.maths, "Exercices 12 à 18 p.64 — fonctions affines", 1, false, 25),
-  assignment("a2", S.francais, "Lire le chapitre 3 de « La Peste » et préparer 3 questions", 2, false, 40),
-  assignment("a3", S.anglais, "Vocabulaire unit 5 à réviser pour le test oral", 3, false, 15),
-  assignment("a4", S.svt, "Compléter le compte-rendu de l'expérience sur la photosynthèse", 4, false, 30),
-  assignment("a5", S.hg, "Fiche de révision : la Révolution française", 6, false, 35),
-  assignment("a6", S.techno, "Terminer le schéma du circuit électrique", -1, true, 20),
+  assignment("a1", S.maths, "Exercices 12 à 18 p.64 — fonctions affines", 1, false, 25, AssignmentDifficulty.Medium),
+  assignment("a2", S.francais, "Lire le chapitre 3 de « La Peste » et préparer 3 questions", 2, false, 40, AssignmentDifficulty.Hard),
+  assignment("a3", S.anglais, "Vocabulaire unit 5 à réviser pour le test oral", 3, false, 15, AssignmentDifficulty.Easy),
+  assignment("a4", S.svt, "Compléter le compte-rendu de l'expérience sur la photosynthèse", 4, false, 30, AssignmentDifficulty.Medium),
+  assignment("a5", S.hg, "Fiche de révision : la Révolution française", 6, false, 35, AssignmentDifficulty.Hard),
+  assignment("a6", S.techno, "Terminer le schéma du circuit électrique", -1, true, 20, AssignmentDifficulty.Easy),
 ];
 
 export const MOCK_NOTEBOOK: Notebook = {
   absences: [],
-  delays: [],
+  delays: [
+    {
+      id: "d1",
+      date: todayAt(8, 5, -4),
+      minutes: 10,
+      justified: true,
+      justification: "Retard de bus",
+      shouldParentsJustify: false,
+      administrativelyFixed: true,
+      isReasonUnknown: false,
+      reason: "Transport",
+    },
+  ],
   punishments: [],
   precautionaryMeasures: [],
   observations: [
