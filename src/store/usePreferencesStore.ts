@@ -14,7 +14,11 @@ export type WidgetId =
   | "devoirsAVenir"
   | "controlesAVenir"
   | "dernieresNotes"
-  | "vieScolaire";
+  | "vieScolaire"
+  | "sacDeCours"
+  | "competences"
+  | "messagerie"
+  | "actualites";
 
 export const WIDGET_LABELS: Record<WidgetId, string> = {
   prochainCours: "Prochain cours",
@@ -23,15 +27,23 @@ export const WIDGET_LABELS: Record<WidgetId, string> = {
   controlesAVenir: "Contrôles à venir",
   dernieresNotes: "Dernières notes",
   vieScolaire: "Vie scolaire",
+  sacDeCours: "Sac de cours",
+  competences: "Compétences évaluées",
+  messagerie: "Messagerie",
+  actualites: "Actualités",
 };
 
 const DEFAULT_WIDGET_ORDER: WidgetId[] = [
   "prochainCours",
   "moyenneGenerale",
+  "sacDeCours",
   "devoirsAVenir",
   "controlesAVenir",
   "dernieresNotes",
   "vieScolaire",
+  "competences",
+  "messagerie",
+  "actualites",
 ];
 
 // Complète un ordre de widgets persisté (ancienne version de l'appli) avec
@@ -88,6 +100,11 @@ type PreferencesState = {
   accent: AccentKey;
   fontScale: FontScaleKey;
   subjectColors: Record<string, string>;
+  // Matériel à prendre par matière, saisi une fois dans Réglages. Aucune
+  // valeur par défaut inventée : Pronote ne donne pas cette info, donc tant
+  // que la personne n'a rien configuré pour une matière, le sac de cours le
+  // signale au lieu d'inventer une liste plausible.
+  subjectMaterials: Record<string, string[]>;
   widgetOrder: WidgetId[];
   hiddenWidgets: WidgetId[];
   tabOrder: TabId[];
@@ -100,6 +117,9 @@ type PreferencesState = {
   setFontScale: (scale: FontScaleKey) => void;
   setSubjectColor: (subject: string, color: string) => void;
   resetSubjectColor: (subject: string) => void;
+  setSubjectMaterials: (subject: string, items: string[]) => void;
+  addSubjectMaterial: (subject: string, item: string) => void;
+  removeSubjectMaterial: (subject: string, item: string) => void;
   toggleWidget: (id: WidgetId) => void;
   reorderWidgets: (order: WidgetId[]) => void;
   reorderTabs: (order: TabId[]) => void;
@@ -118,6 +138,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       accent: "ciel",
       fontScale: "md",
       subjectColors: {},
+      subjectMaterials: {},
       widgetOrder: DEFAULT_WIDGET_ORDER,
       hiddenWidgets: [],
       tabOrder: DEFAULT_TAB_ORDER,
@@ -136,6 +157,23 @@ export const usePreferencesStore = create<PreferencesState>()(
           delete next[subject];
           return { subjectColors: next };
         }),
+      setSubjectMaterials: (subject, items) =>
+        set((s) => ({ subjectMaterials: { ...s.subjectMaterials, [subject]: items } })),
+      addSubjectMaterial: (subject, item) =>
+        set((s) => {
+          const trimmed = item.trim();
+          if (!trimmed) return s;
+          const current = s.subjectMaterials[subject] ?? [];
+          if (current.includes(trimmed)) return s;
+          return { subjectMaterials: { ...s.subjectMaterials, [subject]: [...current, trimmed] } };
+        }),
+      removeSubjectMaterial: (subject, item) =>
+        set((s) => ({
+          subjectMaterials: {
+            ...s.subjectMaterials,
+            [subject]: (s.subjectMaterials[subject] ?? []).filter((m) => m !== item),
+          },
+        })),
       toggleWidget: (id) =>
         set((s) => {
           const hidden = s.hiddenWidgets.includes(id);
@@ -190,6 +228,9 @@ export const usePreferencesStore = create<PreferencesState>()(
         // n'ont pas styleId dans leur storage persistant -> Aurora par défaut.
         styleId: (persisted as any)?.styleId ?? current.styleId,
         widgetOrder: backfillWidgetOrder((persisted as any)?.widgetOrder),
+        // Les personnes qui avaient déjà l'app avant l'ajout du sac de cours
+        // n'ont pas subjectMaterials dans leur storage persistant -> objet vide.
+        subjectMaterials: (persisted as any)?.subjectMaterials ?? current.subjectMaterials,
       }),
     }
   )
