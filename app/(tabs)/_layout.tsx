@@ -31,9 +31,20 @@ export default function TabsLayout() {
   // Barre 100% opaque (backgroundColor: c.surface) — pas de flou/dégradé,
   // le style se distingue par la forme (radius, bordure, ombre) et par la
   // forme de l'indicateur actif dans TabButton.
+  //
+  // Bug web (barre du bas qui scrolle, défilement de toute la page au lieu
+  // du contenu) : le <TabSlot /> d'expo-router/ui rend un ScreenContainer
+  // avec flexShrink:0 en dur. Sur natif ça ne pose pas de problème (l'OS
+  // borne le ScrollView à son cadre quoi qu'il arrive), mais sur web ce
+  // flex-shrink:0 empêche le conteneur de se réduire à la hauteur
+  // disponible : il grossit à la hauteur de son contenu, déborde de <Tabs>,
+  // et c'est alors la page entière (html) qui devient scrollable au lieu du
+  // ScrollView interne à chaque écran — ce qui fait aussi défiler la barre
+  // du bas avec le reste. On corrige en réinjectant flexShrink:1 (comme un
+  // flex:1 normal) + overflow:hidden en garde-fou.
   return (
     <Tabs style={{ flex: 1, backgroundColor: c.background }}>
-      <TabSlot />
+      <TabSlot style={{ flexShrink: 1, flexBasis: 0, overflow: "hidden" }} />
       <TabList
         style={{
           flexDirection: "row",
