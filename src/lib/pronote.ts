@@ -16,6 +16,13 @@ import {
   assignmentsFromIntervals,
   assignmentStatus,
   cleanURL,
+  evaluations as pawnoteEvaluations,
+  resourcesFromIntervals,
+  discussions as pawnoteDiscussions,
+  discussionMessages as pawnoteDiscussionMessages,
+  discussionRead as pawnoteDiscussionRead,
+  news as pawnoteNews,
+  newsRead as pawnoteNewsRead,
   type SessionHandle,
   type RefreshInformation,
   type GradesOverview,
@@ -23,6 +30,14 @@ import {
   type Timetable,
   type Assignment,
   type Period,
+  type Evaluation,
+  type Resource,
+  type Discussion,
+  type Discussions,
+  type DiscussionMessages,
+  type News,
+  type NewsInformation,
+  type NewsSurvey,
 } from "pawnote";
 
 export type StoredCredentials = {
@@ -177,4 +192,53 @@ export async function setAssignmentDone(
   done: boolean
 ): Promise<void> {
   return assignmentStatus(session, assignmentId, done);
+}
+
+export async function fetchEvaluations(
+  session: SessionHandle,
+  period?: Period
+): Promise<Evaluation[]> {
+  const target = period ?? currentPeriod(session);
+  if (!target) throw new Error("Aucune période disponible.");
+  return pawnoteEvaluations(session, target);
+}
+
+export async function fetchResourcesRange(
+  session: SessionHandle,
+  start: Date,
+  end: Date
+): Promise<Resource[]> {
+  return resourcesFromIntervals(session, start, end);
+}
+
+export async function fetchDiscussions(session: SessionHandle): Promise<Discussions> {
+  return pawnoteDiscussions(session);
+}
+
+// Les messages d'une discussion ne sont pas inclus dans `discussions()` (trop
+// coûteux à tout charger d'un coup) -> récupération à la demande, quand on
+// ouvre une discussion précise. `markAsRead` à false par défaut : c'est
+// l'écran qui décide explicitement quand marquer comme lu, pas ce wrapper.
+export async function fetchDiscussionMessages(
+  session: SessionHandle,
+  discussion: Discussion,
+  markAsRead = false
+): Promise<DiscussionMessages> {
+  return pawnoteDiscussionMessages(session, discussion, markAsRead);
+}
+
+export async function markDiscussionRead(session: SessionHandle, discussion: Discussion): Promise<void> {
+  return pawnoteDiscussionRead(session, discussion);
+}
+
+export async function fetchNews(session: SessionHandle): Promise<News> {
+  return pawnoteNews(session);
+}
+
+export async function setNewsRead(
+  session: SessionHandle,
+  item: NewsInformation | NewsSurvey,
+  read: boolean
+): Promise<void> {
+  return pawnoteNewsRead(session, item, read);
 }
