@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AccentKey } from "../theme/palette";
+import { StyleId } from "../theme/styles";
 import { IconName } from "../components/ui/Icon";
 
 export type ThemeMode = "system" | "dark" | "light";
@@ -69,6 +70,7 @@ const NON_HIDEABLE_TAB: TabId = "reglages";
 
 type PreferencesState = {
   themeMode: ThemeMode;
+  styleId: StyleId;
   accent: AccentKey;
   fontScale: FontScaleKey;
   subjectColors: Record<string, string>;
@@ -79,6 +81,7 @@ type PreferencesState = {
   tabLabels: Partial<Record<TabId, string>>;
   tabIcons: Partial<Record<TabId, IconName>>;
   setThemeMode: (mode: ThemeMode) => void;
+  setStyle: (id: StyleId) => void;
   setAccent: (accent: AccentKey) => void;
   setFontScale: (scale: FontScaleKey) => void;
   setSubjectColor: (subject: string, color: string) => void;
@@ -97,6 +100,7 @@ export const usePreferencesStore = create<PreferencesState>()(
   persist(
     (set) => ({
       themeMode: "system",
+      styleId: "aurora",
       accent: "ciel",
       fontScale: "md",
       subjectColors: {},
@@ -107,6 +111,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       tabLabels: {},
       tabIcons: {},
       setThemeMode: (themeMode) => set({ themeMode }),
+      setStyle: (styleId) => set({ styleId }),
       setAccent: (accent) => set({ accent }),
       setFontScale: (fontScale) => set({ fontScale }),
       setSubjectColor: (subject, color) =>
@@ -167,6 +172,9 @@ export const usePreferencesStore = create<PreferencesState>()(
         hiddenTabs: (persisted as any)?.hiddenTabs ?? current.hiddenTabs,
         tabLabels: (persisted as any)?.tabLabels ?? current.tabLabels,
         tabIcons: (persisted as any)?.tabIcons ?? current.tabIcons,
+        // Les personnes qui avaient déjà l'app avant l'ajout des styles
+        // n'ont pas styleId dans leur storage persistant -> Aurora par défaut.
+        styleId: (persisted as any)?.styleId ?? current.styleId,
       }),
     }
   )
