@@ -50,6 +50,9 @@ function RootNavigator() {
       <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
         <Stack.Protected guard={status === "authenticated"}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="competences" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="messagerie" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="actualites" options={{ animation: "slide_from_right" }} />
         </Stack.Protected>
         <Stack.Protected guard={status !== "authenticated"}>
           <Stack.Screen name="login" />
