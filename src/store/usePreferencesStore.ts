@@ -62,19 +62,48 @@ function backfillWidgetOrder(persisted: WidgetId[] | undefined): WidgetId[] {
 // on peut entièrement personnaliser celles qui existent — nom, icône, ordre,
 // visibilité. "reglages" reste toujours accessible pour ne pas s'enfermer
 // dehors des réglages en le masquant par erreur.
-export type TabId = "index" | "notes" | "emploi-du-temps" | "devoirs" | "reglages";
+export type TabId = "index" | "notes" | "emploi-du-temps" | "devoirs" | "extensions" | "reglages";
 
 export type TabDefaults = { href: string; label: string; icon: IconName };
 
 export const TAB_DEFAULTS: Record<TabId, TabDefaults> = {
   index: { href: "/", label: "Accueil", icon: "dashboard" },
   notes: { href: "/notes", label: "Notes", icon: "notes" },
-  "emploi-du-temps": { href: "/emploi-du-temps", label: "Emploi du temps", icon: "timetable" },
+  // Libellé court : avec 6 onglets, « Emploi du temps » ne tient pas dans la
+  // barre du bas et se retrouve tronqué. « EDT » est l'abréviation usuelle,
+  // et le libellé reste renommable depuis les Réglages.
+  "emploi-du-temps": { href: "/emploi-du-temps", label: "EDT", icon: "timetable" },
   devoirs: { href: "/devoirs", label: "Devoirs", icon: "homework" },
+  extensions: { href: "/extensions", label: "Extensions", icon: "sparkle" },
   reglages: { href: "/reglages", label: "Réglages", icon: "settings" },
 };
 
-export const DEFAULT_TAB_ORDER: TabId[] = ["index", "notes", "emploi-du-temps", "devoirs", "reglages"];
+export const DEFAULT_TAB_ORDER: TabId[] = [
+  "index",
+  "notes",
+  "emploi-du-temps",
+  "devoirs",
+  "extensions",
+  "reglages",
+];
+
+// Même logique que backfillWidgetOrder : quelqu'un qui utilisait déjà l'app
+// avant l'ajout d'un onglet a un tabOrder persisté qui ne le contient pas.
+// Sans ce complément, le nouvel onglet n'apparaîtrait JAMAIS chez cette
+// personne — bug silencieux et très difficile à repérer.
+function backfillTabOrder(persisted: TabId[] | undefined): TabId[] {
+  if (!persisted) return DEFAULT_TAB_ORDER;
+  const known = persisted.filter((id) => DEFAULT_TAB_ORDER.includes(id));
+  const missing = DEFAULT_TAB_ORDER.filter((id) => !known.includes(id));
+  // Les nouveaux onglets s'insèrent avant "reglages", qui reste le dernier.
+  const sansReglages = known.filter((id) => id !== "reglages");
+  const avaitReglages = known.includes("reglages");
+  return [
+    ...sansReglages,
+    ...missing.filter((id) => id !== "reglages"),
+    ...(avaitReglages || missing.includes("reglages") ? (["reglages"] as TabId[]) : []),
+  ];
+}
 
 // Choix d'icônes proposés pour personnaliser un onglet.
 export const TAB_ICON_CHOICES: IconName[] = [
@@ -134,7 +163,7 @@ export const usePreferencesStore = create<PreferencesState>()(
   persist(
     (set) => ({
       themeMode: "system",
-      styleId: "aurora",
+      styleId: "forge",
       accent: "ciel",
       fontScale: "md",
       subjectColors: {},
@@ -220,12 +249,14 @@ export const usePreferencesStore = create<PreferencesState>()(
       merge: (persisted, current) => ({
         ...current,
         ...(persisted as object),
-        tabOrder: (persisted as any)?.tabOrder ?? current.tabOrder,
+        tabOrder: backfillTabOrder((persisted as any)?.tabOrder),
         hiddenTabs: (persisted as any)?.hiddenTabs ?? current.hiddenTabs,
         tabLabels: (persisted as any)?.tabLabels ?? current.tabLabels,
         tabIcons: (persisted as any)?.tabIcons ?? current.tabIcons,
         // Les personnes qui avaient déjà l'app avant l'ajout des styles
-        // n'ont pas styleId dans leur storage persistant -> Aurora par défaut.
+        // n'ont pas styleId dans leur storage persistant -> Forge par défaut
+        // (le style par défaut de l'app depuis la refonte de la présentation
+        // des données). Celles qui en avaient choisi un gardent le leur.
         styleId: (persisted as any)?.styleId ?? current.styleId,
         widgetOrder: backfillWidgetOrder((persisted as any)?.widgetOrder),
         // Les personnes qui avaient déjà l'app avant l'ajout du sac de cours
