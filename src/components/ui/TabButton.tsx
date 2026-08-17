@@ -91,7 +91,14 @@ export const TabButton = forwardRef<View, Props>(({ isFocused, icon, label, ...r
         <Icon name={icon} size={19} color={iconColor} />
       </View>
       {bottomMark}
-      <T variant="caption" weight={isFocused ? "semibold" : "regular"} style={{ color: textColor, fontSize: 10.5 }}>
+      {/* Une seule ligne : avec 6 onglets, un libellé long comme « Emploi du
+          temps » passait sur deux lignes et décalait toute la barre. */}
+      <T
+        variant="caption"
+        weight={isFocused ? "semibold" : "regular"}
+        numberOfLines={1}
+        style={{ color: textColor, fontSize: 10.5, maxWidth: "100%" }}
+      >
         {label}
       </T>
     </Pressable>

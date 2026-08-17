@@ -69,6 +69,15 @@ export function Card({ children, onPress, style, padded = true, elevated = false
         }}
       />
     );
+  } else if (card.treatment === "flat-fill") {
+    // Forge : surface pleine, bordure discrète, aucune ombre ni décoration.
+    // Toute la hiérarchie vient du contenu (chiffres, puces teintées), pas du
+    // contour de la carte.
+    extra = {
+      borderWidth: card.borderWidth,
+      borderColor: c.borderSoft,
+      backgroundColor: elevated ? c.surfaceElevated : c.surface,
+    };
   } else if (card.treatment === "bold-border") {
     extra = { borderWidth: card.borderWidth, borderColor: c.textPrimary };
   } else if (card.treatment === "paper-margin") {
