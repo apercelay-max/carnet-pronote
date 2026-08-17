@@ -10,6 +10,7 @@ import { T } from "../../src/components/ui/Text";
 import { Card } from "../../src/components/ui/Card";
 import { Icon } from "../../src/components/ui/Icon";
 import { ProgressRing } from "../../src/components/ui/ProgressRing";
+import { Eyebrow, BigStat, StatTile, StatRow, Bar } from "../../src/components/ui/Stats";
 import { colorForSubject } from "../../src/theme/palette";
 import { formatGradeValue, formatTime, gradeOn20, formatDayLabel } from "../../src/lib/format";
 import { nextSchoolDay } from "../../src/lib/sacDeCours";
@@ -77,19 +78,30 @@ function Widget({ id, grades, notebookData, timetable, assignments, evaluations,
   const theme = useTheme();
 
   if (id === "moyenneGenerale") {
+    // Meme presentation que l'ecran Notes : le chiffre porte la carte, l'ecart
+    // avec la classe est une puce, le reste passe en tuiles.
     const overall = grades?.overallAverage as GradeValue | undefined;
-    const value = overall && overall.kind === 0 ? overall.points / 20 : 0;
+    const klass = grades?.classAverage as GradeValue | undefined;
+    const mineNum = overall && overall.kind === 0 ? overall.points : null;
+    const klassNum = klass && klass.kind === 0 ? klass.points : null;
+    const ecart = mineNum !== null && klassNum !== null ? mineNum - klassNum : null;
+    const nbNotes = (grades?.grades ?? []).length;
+    const nbMatieres = (grades?.subjectsAverages ?? []).length;
+
     return (
-      <Card>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing(5) }}>
-          <ProgressRing value={value} centerText={formatGradeValue(overall)} label="/ 20" size={92} strokeWidth={9} />
-          <View style={{ flex: 1 }}>
-            <T variant="subtitle">Moyenne générale</T>
-            <T variant="caption" tone="secondary" style={{ marginTop: 2 }}>
-              Classe : {formatGradeValue(grades?.classAverage)} / 20
-            </T>
-          </View>
+      <Card elevated>
+        <Eyebrow color={theme.colors.accent}>Moyenne générale</Eyebrow>
+        <View style={{ marginTop: 8, marginBottom: 12 }}>
+          <BigStat value={formatGradeValue(overall)} unit="/ 20" delta={ecart} deltaLabel="vs classe" />
         </View>
+        <View style={{ marginBottom: 12 }}>
+          <Bar value={mineNum !== null ? mineNum / 20 : 0} color={theme.colors.accent} />
+        </View>
+        <StatRow>
+          <StatTile label="Classe" value={formatGradeValue(klass)} />
+          <StatTile label="Matières" value={String(nbMatieres)} />
+          <StatTile label="Notes" value={String(nbNotes)} />
+        </StatRow>
       </Card>
     );
   }
@@ -136,12 +148,32 @@ function Widget({ id, grades, notebookData, timetable, assignments, evaluations,
   }
 
   if (id === "devoirsAVenir") {
-    const upcoming = (assignments ?? []).filter((a: any) => !a.done).slice(0, 3);
+    const tous = assignments ?? [];
+    const restants = tous.filter((a: any) => !a.done);
+    const faits = tous.length - restants.length;
+    const upcoming = restants.slice(0, 3);
     return (
       <Card>
-        <T variant="subtitle" style={{ marginBottom: theme.spacing(3) }}>
-          Devoirs à venir
-        </T>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: theme.spacing(3),
+          }}
+        >
+          <Eyebrow color={theme.colors.accent}>Devoirs à venir</Eyebrow>
+          {tous.length > 0 ? (
+            <T variant="caption" tone="tertiary" weight="semibold">
+              {faits} / {tous.length} faits
+            </T>
+          ) : null}
+        </View>
+        {tous.length > 0 ? (
+          <View style={{ marginBottom: theme.spacing(3) }}>
+            <Bar value={faits / tous.length} color={theme.colors.accent} />
+          </View>
+        ) : null}
         {upcoming.length === 0 ? (
           <T variant="body" tone="secondary">
             Rien à faire pour le moment, profite-en.
