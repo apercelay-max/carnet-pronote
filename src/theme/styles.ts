@@ -8,9 +8,9 @@
 // une régression de contraste avec un fond "ambiant" translucide plus tôt —
 // plus jamais ça. Solide, prévisible, identique partout.
 
-export type StyleId = "aurora" | "cockpit" | "editorial" | "carnet";
+export type StyleId = "aurora" | "cockpit" | "editorial" | "carnet" | "forge";
 
-export const STYLE_ORDER: StyleId[] = ["aurora", "cockpit", "editorial", "carnet"];
+export const STYLE_ORDER: StyleId[] = ["forge", "aurora", "cockpit", "editorial", "carnet"];
 
 export const STYLE_META: Record<StyleId, { label: string; description: string; swatch: [string, string, string] }> = {
   aurora: {
@@ -32,6 +32,11 @@ export const STYLE_META: Record<StyleId, { label: string; description: string; s
     label: "Carnet",
     description: "Papier & tableau noir, esprit cahier",
     swatch: ["#F6EFDC", "#B0342A", "#2E2416"],
+  },
+  forge: {
+    label: "Forge",
+    description: "Sombre et dense, chiffres en avant",
+    swatch: ["#131318", "#E03030", "#9B27AF"],
   },
 };
 
@@ -171,9 +176,41 @@ export const STYLE_PALETTES: Record<StyleId, { light: StyleNeutrals; dark: Style
       warning: "#F5C563",
     },
   },
+  // Forge : repris de PPL Tracker (mêmes valeurs que ses variables CSS), pour
+  // que les deux apps se ressemblent vraiment au pixel près.
+  forge: {
+    dark: {
+      background: "#131318",
+      backgroundElevated: "#1D1D26",
+      surface: "#1D1D26",
+      surfaceElevated: "#25252F",
+      border: "#363646",
+      borderSoft: "#2C2C39",
+      textPrimary: "#FFFFFF",
+      textSecondary: "#D6D6E6",
+      textTertiary: "#9797B0",
+      danger: "#FF6B6B",
+      success: "#4CAF50",
+      warning: "#F5A623",
+    },
+    light: {
+      background: "#F2F2F7",
+      backgroundElevated: "#EBEBF2",
+      surface: "#FFFFFF",
+      surfaceElevated: "#F6F6FB",
+      border: "#DDDDE8",
+      borderSoft: "#E8E8F0",
+      textPrimary: "#0D0D16",
+      textSecondary: "#2A2A3C",
+      textTertiary: "#777788",
+      danger: "#D93A3A",
+      success: "#2E7D32",
+      warning: "#B26A00",
+    },
+  },
 };
 
-export type CardTreatment = "accent-bar" | "bordered-glow" | "bold-border" | "paper-margin";
+export type CardTreatment = "accent-bar" | "bordered-glow" | "bold-border" | "paper-margin" | "flat-fill";
 export type TabBarTreatment = "floating-pill" | "bordered-panel" | "solid-block" | "tabbed-ruler";
 
 export type StyleStructure = {
@@ -227,4 +264,16 @@ export const STYLE_STRUCTURE: Record<StyleId, StyleStructure> = {
     signal: { light: "#B0342A", dark: "#F0C36B" },
     accentBarColors: [],
   },
+  forge: {
+    card: { treatment: "flat-fill", radius: 14, borderWidth: 1, shadowOpacity: 0 },
+    tabBar: { treatment: "bordered-panel", radius: 18 },
+    typography: { headingWeight: "800", mono: false },
+    signal: { light: "#C02020", dark: "#E03030" },
+    accentBarColors: [],
+  },
 };
+
+// Dégradé de marque de Forge (repris de PPL) — utilisé pour les boutons
+// principaux et la pulsation des records. Les autres styles n'en ont pas :
+// on retombe alors sur l'accent plein choisi par la personne.
+export const FORGE_GRADIENT: [string, string] = ["#E03030", "#9B27AF"];
