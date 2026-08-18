@@ -8,13 +8,13 @@ import { genererFiche, type FicheGeneree } from "../lib/fiches";
 // pas la même sortie : c'est le mode qui décide de ce qu'on montre.
 export type FicheMode = "fiche" | "resume" | "points";
 
-export type ExtensionId = FicheMode | "simulateur";
+export type ExtensionId = FicheMode | "simulateur" | "flashcards" | "controles";
 
 export const EXTENSIONS: {
   id: ExtensionId;
   titre: string;
   sousTitre: string;
-  icone: "sparkle" | "text" | "target" | "notes";
+  icone: "sparkle" | "text" | "target" | "notes" | "book" | "clock";
 }[] = [
   {
     id: "fiche",
@@ -33,6 +33,18 @@ export const EXTENSIONS: {
     titre: "Points importants",
     sousTitre: "Ce qu'il faut retenir, en puces",
     icone: "target",
+  },
+  {
+    id: "flashcards",
+    titre: "Flashcards",
+    sousTitre: "Réviser tes fiches en cartes recto-verso",
+    icone: "book",
+  },
+  {
+    id: "controles",
+    titre: "Contrôles à venir",
+    sousTitre: "Le compte à rebours, et où tu en es dans tes fiches",
+    icone: "clock",
   },
   {
     id: "simulateur",
@@ -74,6 +86,8 @@ const TOUT_ACTIF: Record<ExtensionId, boolean> = {
   fiche: true,
   resume: true,
   points: true,
+  flashcards: true,
+  controles: true,
   simulateur: true,
 };
 
