@@ -8,9 +8,28 @@
 // une régression de contraste avec un fond "ambiant" translucide plus tôt —
 // plus jamais ça. Solide, prévisible, identique partout.
 
-export type StyleId = "aurora" | "cockpit" | "editorial" | "carnet" | "forge";
+export type StyleId =
+  | "aurora"
+  | "cockpit"
+  | "editorial"
+  | "carnet"
+  | "forge"
+  | "metro"
+  | "bento"
+  | "pop"
+  | "ardoise";
 
-export const STYLE_ORDER: StyleId[] = ["forge", "aurora", "cockpit", "editorial", "carnet"];
+export const STYLE_ORDER: StyleId[] = [
+  "forge",
+  "metro",
+  "bento",
+  "pop",
+  "ardoise",
+  "aurora",
+  "cockpit",
+  "editorial",
+  "carnet",
+];
 
 export const STYLE_META: Record<StyleId, { label: string; description: string; swatch: [string, string, string] }> = {
   aurora: {
@@ -37,6 +56,26 @@ export const STYLE_META: Record<StyleId, { label: string; description: string; s
     label: "Forge",
     description: "Sombre et dense, chiffres en avant",
     swatch: ["#131318", "#E03030", "#9B27AF"],
+  },
+  metro: {
+    label: "Métro",
+    description: "Signalétique : chaque matière a sa ligne",
+    swatch: ["#F4F4F2", "#E1002A", "#16161A"],
+  },
+  bento: {
+    label: "Bento",
+    description: "Grandes tuiles arrondies, beaucoup d'air",
+    swatch: ["#EFEFF4", "#5B7CFA", "#FFFFFF"],
+  },
+  pop: {
+    label: "Pop",
+    description: "Bordures franches, ombres dures",
+    swatch: ["#FFF8E7", "#FF5C00", "#14110E"],
+  },
+  ardoise: {
+    label: "Ardoise",
+    description: "Sobre et discret, tout par la typo",
+    swatch: ["#16181B", "#9AA3AF", "#EDEFF2"],
   },
 };
 
@@ -176,6 +215,127 @@ export const STYLE_PALETTES: Record<StyleId, { light: StyleNeutrals; dark: Style
       warning: "#F5C563",
     },
   },
+  // --- Styles ajoutés le 2026-08-17 -------------------------------------
+  metro: {
+    light: {
+      background: "#F4F4F2",
+      backgroundElevated: "#EAEAE6",
+      surface: "#FFFFFF",
+      surfaceElevated: "#FFFFFF",
+      border: "#D9D9D4",
+      borderSoft: "#E7E7E2",
+      textPrimary: "#16161A",
+      textSecondary: "#4A4A52",
+      textTertiary: "#85858F",
+      danger: "#D32F2F",
+      success: "#2E7D32",
+      warning: "#C25E00",
+    },
+    dark: {
+      background: "#121215",
+      backgroundElevated: "#17171C",
+      surface: "#1B1B20",
+      surfaceElevated: "#24242B",
+      border: "#34343E",
+      borderSoft: "#26262E",
+      textPrimary: "#FFFFFF",
+      textSecondary: "#D2D2DC",
+      textTertiary: "#8E8E9C",
+      danger: "#FF5C5C",
+      success: "#5BD97E",
+      warning: "#FFA733",
+    },
+  },
+  bento: {
+    light: {
+      background: "#EFEFF4",
+      backgroundElevated: "#E7E7EE",
+      surface: "#FFFFFF",
+      surfaceElevated: "#FFFFFF",
+      border: "#E4E4EC",
+      borderSoft: "#EDEDF3",
+      textPrimary: "#17171C",
+      textSecondary: "#55555F",
+      textTertiary: "#8E8E99",
+      danger: "#E0433A",
+      success: "#1FA987",
+      warning: "#C97D0A",
+    },
+    dark: {
+      background: "#0E0E11",
+      backgroundElevated: "#15151A",
+      surface: "#1A1A20",
+      surfaceElevated: "#232329",
+      border: "#2A2A33",
+      borderSoft: "#212129",
+      textPrimary: "#F4F4F8",
+      textSecondary: "#AFAFBC",
+      textTertiary: "#75757F",
+      danger: "#FF6B6B",
+      success: "#34D399",
+      warning: "#FBBF24",
+    },
+  },
+  pop: {
+    light: {
+      background: "#FFF8E7",
+      backgroundElevated: "#FBF0D6",
+      surface: "#FFFFFF",
+      surfaceElevated: "#FFFFFF",
+      border: "#14110E",
+      borderSoft: "#DCD4C4",
+      textPrimary: "#14110E",
+      textSecondary: "#3D3833",
+      textTertiary: "#6E665D",
+      danger: "#D62828",
+      success: "#147A3D",
+      warning: "#B36800",
+    },
+    dark: {
+      background: "#15130F",
+      backgroundElevated: "#1C1915",
+      surface: "#201D18",
+      surfaceElevated: "#282419",
+      border: "#F5EFE3",
+      borderSoft: "#3A352C",
+      textPrimary: "#F8F3E8",
+      textSecondary: "#CFC7B7",
+      textTertiary: "#948C7D",
+      danger: "#FF6B5C",
+      success: "#6EE7B7",
+      warning: "#FFC24D",
+    },
+  },
+  ardoise: {
+    light: {
+      background: "#F5F6F7",
+      backgroundElevated: "#ECEEF0",
+      surface: "#FFFFFF",
+      surfaceElevated: "#F7F8F9",
+      border: "#E2E5E9",
+      borderSoft: "#EDEFF2",
+      textPrimary: "#1B1F24",
+      textSecondary: "#5A626B",
+      textTertiary: "#98A0A9",
+      danger: "#C0392B",
+      success: "#2F7A55",
+      warning: "#A9660E",
+    },
+    dark: {
+      background: "#16181B",
+      backgroundElevated: "#1A1D21",
+      surface: "#1D2024",
+      surfaceElevated: "#23272C",
+      border: "#2C3138",
+      borderSoft: "#23272C",
+      textPrimary: "#EDEFF2",
+      textSecondary: "#B4BAC1",
+      textTertiary: "#78808A",
+      danger: "#FF6B6B",
+      success: "#5BD9A6",
+      warning: "#E8B04B",
+    },
+  },
   // Forge : repris de PPL Tracker (mêmes valeurs que ses variables CSS), pour
   // que les deux apps se ressemblent vraiment au pixel près.
   forge: {
@@ -210,7 +370,14 @@ export const STYLE_PALETTES: Record<StyleId, { light: StyleNeutrals; dark: Style
   },
 };
 
-export type CardTreatment = "accent-bar" | "bordered-glow" | "bold-border" | "paper-margin" | "flat-fill";
+export type CardTreatment =
+  | "accent-bar"
+  | "bordered-glow"
+  | "bold-border"
+  | "paper-margin"
+  | "flat-fill"
+  | "line-badge"
+  | "hard-shadow";
 export type TabBarTreatment = "floating-pill" | "bordered-panel" | "solid-block" | "tabbed-ruler";
 
 export type StyleStructure = {
@@ -262,6 +429,39 @@ export const STYLE_STRUCTURE: Record<StyleId, StyleStructure> = {
     tabBar: { treatment: "tabbed-ruler", radius: 16 },
     typography: { headingWeight: "800", mono: false },
     signal: { light: "#B0342A", dark: "#F0C36B" },
+    accentBarColors: [],
+  },
+  metro: {
+    // Bandeau de couleur épais à gauche : chaque matière devient une "ligne".
+    card: { treatment: "line-badge", radius: 10, borderWidth: 0, shadowOpacity: 0 },
+    tabBar: { treatment: "solid-block", radius: 6 },
+    typography: { headingWeight: "900", mono: false },
+    signal: { light: "#E1002A", dark: "#FF3355" },
+    accentBarColors: [],
+  },
+  bento: {
+    // Grandes tuiles très arrondies, sans bordure : le contraste entre le fond
+    // d'écran et la surface suffit à détacher les cartes.
+    card: { treatment: "flat-fill", radius: 24, borderWidth: 0, shadowOpacity: 0 },
+    tabBar: { treatment: "floating-pill", radius: 26 },
+    typography: { headingWeight: "800", mono: false },
+    signal: { light: "#5B7CFA", dark: "#8FA6FF" },
+    accentBarColors: [],
+  },
+  pop: {
+    card: { treatment: "hard-shadow", radius: 4, borderWidth: 2.5, shadowOpacity: 1 },
+    tabBar: { treatment: "solid-block", radius: 4 },
+    typography: { headingWeight: "900", mono: false },
+    signal: { light: "#FF5C00", dark: "#FFB300" },
+    accentBarColors: [],
+  },
+  ardoise: {
+    // Volontairement le plus discret : ni bordure ni ombre, la hiérarchie ne
+    // vient que de la typo et de l'espacement.
+    card: { treatment: "flat-fill", radius: 8, borderWidth: 0, shadowOpacity: 0 },
+    tabBar: { treatment: "bordered-panel", radius: 10 },
+    typography: { headingWeight: "700", mono: false },
+    signal: { light: "#4B5563", dark: "#9AA3AF" },
     accentBarColors: [],
   },
   forge: {
