@@ -8,6 +8,7 @@ import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { Card } from "../../src/components/ui/Card";
 import { Icon } from "../../src/components/ui/Icon";
+import { Eyebrow, Chip, StatTile, StatRow } from "../../src/components/ui/Stats";
 import { colorForSubject } from "../../src/theme/palette";
 import { formatTime, formatDayOfWeekLetter } from "../../src/lib/format";
 import { ResourceContentCategory } from "pawnote";
@@ -78,12 +79,35 @@ export default function TimetableScreen() {
       .sort((a: any, b: any) => a.startDate.getTime() - b.startDate.getTime());
   }, [timetable, days, selected]);
 
+  // Résumé du jour affiché : uniquement des cours réels, annulés exclus du
+  // temps passé en classe (sinon on gonflerait la journée avec des heures
+  // qui n'ont pas lieu).
+  const resumeJour = useMemo(() => {
+    const lecons = classesForDay.filter((c: any) => c.is === "lesson");
+    const actifs = lecons.filter((c: any) => !c.canceled);
+    const minutes = actifs.reduce(
+      (acc: number, c: any) => acc + (c.endDate.getTime() - c.startDate.getTime()) / 60000,
+      0
+    );
+    const h = Math.floor(minutes / 60);
+    const m = Math.round(minutes % 60);
+    return {
+      cours: actifs.length,
+      duree: minutes === 0 ? "—" : m === 0 ? `${h} h` : `${h} h ${m}`,
+      evaluations: actifs.filter((c: any) => c.test).length,
+      annules: lecons.filter((c: any) => c.canceled).length,
+    };
+  }, [classesForDay]);
+
   return (
     <Screen scroll={false}>
       <View style={{ paddingHorizontal: theme.spacing(4), paddingTop: theme.spacing(2) }}>
-        <T variant="hero" style={{ marginBottom: theme.spacing(5) }}>
-          Emploi du temps
-        </T>
+        <View style={{ marginBottom: theme.spacing(4) }}>
+          <Eyebrow color={theme.colors.accent}>Ma semaine</Eyebrow>
+          <T variant="hero" style={{ marginTop: 2 }}>
+            Emploi du temps
+          </T>
+        </View>
         <View style={{ flexDirection: "row", gap: 8, marginBottom: theme.spacing(5) }}>
           {days.map((d, i) => {
             const active = i === selected;
@@ -119,6 +143,20 @@ export default function TimetableScreen() {
             );
           })}
         </View>
+        {classesForDay.length > 0 ? (
+          <View style={{ marginBottom: theme.spacing(4) }}>
+            <StatRow>
+              <StatTile label="Cours" value={String(resumeJour.cours)} />
+              <StatTile label="En classe" value={resumeJour.duree} />
+              {resumeJour.evaluations > 0 ? (
+                <StatTile label="Évals" value={String(resumeJour.evaluations)} color={theme.colors.warning} />
+              ) : null}
+              {resumeJour.annules > 0 ? (
+                <StatTile label="Annulés" value={String(resumeJour.annules)} color={theme.colors.danger} />
+              ) : null}
+            </StatRow>
+          </View>
+        ) : null}
       </View>
 
       <ScrollView
@@ -163,16 +201,20 @@ export default function TimetableScreen() {
                     </View>
                     <View style={{ width: 4, borderRadius: 2, backgroundColor: color, marginRight: 12 }} />
                     <View style={{ flex: 1 }}>
-                      <T variant="body" weight="semibold" numberOfLines={1}>
-                        {name}
-                        {canceled ? " — annulé" : ""}
-                      </T>
-                      <View style={{ flexDirection: "row", gap: 10, marginTop: 2, flexWrap: "wrap" }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <T variant="body" weight="semibold" numberOfLines={1} style={{ flexShrink: 1 }}>
+                          {name}
+                        </T>
+                        {canceled ? <Chip color={theme.colors.danger} label="Annulé" /> : null}
+                        {isLesson && c.test && !canceled ? (
+                          <Chip color={theme.colors.warning} label="Évaluation" />
+                        ) : null}
+                      </View>
+                      <View style={{ flexDirection: "row", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
                         {c.classrooms?.[0] ? (
                           <MetaTag icon="pin" text={c.classrooms[0]} />
                         ) : null}
                         {c.teacherNames?.[0] ? <MetaTag icon="user" text={c.teacherNames[0]} /> : null}
-                        {isLesson && c.test ? <MetaTag icon="warning" text="Évaluation" /> : null}
                         {hasContent ? <MetaTag icon="book" text="Contenu du cours" /> : null}
                       </View>
                     </View>
@@ -195,9 +237,11 @@ export default function TimetableScreen() {
                     >
                       {resource.contents.map((content: any) => (
                         <View key={content.id}>
-                          <T variant="caption" tone="accent" weight="semibold" style={{ marginBottom: 2 }}>
-                            {CATEGORY_LABELS[content.category] ?? "Contenu"}
-                          </T>
+                          <View style={{ marginBottom: 4 }}>
+                            <Eyebrow color={theme.colors.accent}>
+                              {CATEGORY_LABELS[content.category] ?? "Contenu"}
+                            </Eyebrow>
+                          </View>
                           {content.title ? (
                             <T variant="body" weight="medium">
                               {content.title}
