@@ -10,7 +10,16 @@ import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { Card } from "../../src/components/ui/Card";
 import { Icon } from "../../src/components/ui/Icon";
-import { Eyebrow, Chip, BigStat, StatTile, StatRow, Bar, Sparkline } from "../../src/components/ui/Stats";
+import {
+  Eyebrow,
+  Chip,
+  BigStat,
+  StatTile,
+  StatRow,
+  Bar,
+  Sparkline,
+  BarreMatiere,
+} from "../../src/components/ui/Stats";
 import { colorForSubject } from "../../src/theme/palette";
 import { formatGradeValue, formatDayLabel, gradeOn20 } from "../../src/lib/format";
 
@@ -136,9 +145,9 @@ export default function NotesScreen() {
           const history = historyBySubject[s.subject.name] ?? [];
 
           return (
-            <Card key={s.subject.id} padded>
+            <Card key={s.subject.id} padded tint={color}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <View style={{ width: 4, alignSelf: "stretch", minHeight: 38, borderRadius: 2, backgroundColor: color }} />
+                <BarreMatiere color={color} minHeight={38} />
 
                 <View style={{ flex: 1, gap: 6 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -204,7 +213,7 @@ export default function NotesScreen() {
           const ecart = on20 !== null && classAvg !== null ? on20 - classAvg : null;
 
           return (
-            <Card key={g.id} padded>
+            <Card key={g.id} padded tint={color}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: color }} />
 

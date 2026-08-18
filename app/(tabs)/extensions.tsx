@@ -6,7 +6,7 @@ import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { Card } from "../../src/components/ui/Card";
 import { Icon } from "../../src/components/ui/Icon";
-import { Eyebrow, Chip, StatTile, StatRow } from "../../src/components/ui/Stats";
+import { Eyebrow, Chip, StatTile, StatRow, BarreMatiere } from "../../src/components/ui/Stats";
 import { hexToRgba, colorForSubject } from "../../src/theme/palette";
 import { usePreferencesStore } from "../../src/store/usePreferencesStore";
 import { EXTENSIONS, useFichesStore, type ExtensionId } from "../../src/store/useFichesStore";
@@ -33,8 +33,14 @@ export default function ExtensionsScreen() {
 
   const ouvrir = (id: ExtensionId) => {
     if (id === "simulateur") router.push("/simulateur");
+    else if (id === "flashcards") router.push("/flashcards");
+    else if (id === "controles") router.push("/controles");
     else router.push(`/fiche-nouvelle?mode=${id}`);
   };
+
+  // Seules les 3 extensions de fiches créent quelque chose ; les autres
+  // ouvrent simplement un écran.
+  const estCreation = (id: ExtensionId) => id === "fiche" || id === "resume" || id === "points";
 
   return (
     <Screen>
@@ -119,12 +125,12 @@ export default function ExtensionsScreen() {
                   }}
                 >
                   <Icon
-                    name={ext.id === "simulateur" ? "chevronRight" : "plus"}
+                    name={estCreation(ext.id) ? "plus" : "chevronRight"}
                     size={15}
                     color={theme.colors.accent}
                   />
                   <T variant="caption" weight="semibold" style={{ color: theme.colors.accent }}>
-                    {ext.id === "simulateur" ? "Ouvrir le simulateur" : "Créer"}
+                    {estCreation(ext.id) ? "Créer" : "Ouvrir"}
                   </T>
                 </Pressable>
               )}
@@ -141,9 +147,9 @@ export default function ExtensionsScreen() {
         {fiches.map((f) => {
           const color = colorForSubject(f.matiere, subjectColors);
           return (
-            <Card key={f.id} onPress={() => router.push(`/fiche/${f.id}`)} padded>
+            <Card key={f.id} onPress={() => router.push(`/fiche/${f.id}`)} padded tint={color}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <View style={{ width: 4, alignSelf: "stretch", minHeight: 34, borderRadius: 2, backgroundColor: color }} />
+                <BarreMatiere color={color} />
                 <View style={{ flex: 1, gap: 5 }}>
                   <T variant="body" weight="semibold" numberOfLines={1}>
                     {f.titre}
