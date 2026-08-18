@@ -9,7 +9,8 @@ import { Screen } from "../src/components/ui/Screen";
 import { T } from "../src/components/ui/Text";
 import { Card } from "../src/components/ui/Card";
 import { Icon } from "../src/components/ui/Icon";
-import { colorForSubject } from "../src/theme/palette";
+import { Eyebrow, Chip, StatTile, StatRow } from "../src/components/ui/Stats";
+import { colorForSubject, hexToRgba } from "../src/theme/palette";
 import { formatDayLabel } from "../src/lib/format";
 
 export default function CompetencesScreen() {
@@ -39,8 +40,26 @@ export default function CompetencesScreen() {
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ marginRight: theme.spacing(3) }}>
           <Icon name="chevronLeft" size={22} color={theme.colors.textPrimary} />
         </Pressable>
-        <T variant="hero">Compétences évaluées</T>
+        <View style={{ flex: 1 }}>
+          <Eyebrow color={theme.colors.accent}>Mon niveau</Eyebrow>
+          <T variant="hero" style={{ marginTop: 2 }}>
+            Compétences
+          </T>
+        </View>
       </View>
+
+      {sorted.length > 0 ? (
+        <View style={{ marginBottom: theme.spacing(5) }}>
+          <StatRow>
+            <StatTile label="Évaluations" value={String(sorted.length)} />
+            <StatTile
+              label="Compétences"
+              value={String(sorted.reduce((acc, e) => acc + e.skills.length, 0))}
+            />
+            <StatTile label="Matières" value={String(new Set(sorted.map((e) => e.subject.name)).size)} />
+          </StatRow>
+        </View>
+      ) : null}
 
       {sorted.length === 0 ? (
         <Card>
@@ -57,10 +76,11 @@ export default function CompetencesScreen() {
                 <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
                   <View style={{ width: 4, borderRadius: 2, backgroundColor: color, alignSelf: "stretch", marginRight: 12 }} />
                   <View style={{ flex: 1 }}>
-                    <T variant="caption" tone="secondary" style={{ textTransform: "capitalize" }}>
-                      {e.subject.name} · {formatDayLabel(e.date)}
-                    </T>
-                    <T variant="body" weight="semibold" style={{ marginTop: 2 }}>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                      <Chip color={color} label={e.subject.name} />
+                      <Chip color={theme.colors.textTertiary} label={formatDayLabel(e.date)} />
+                    </View>
+                    <T variant="body" weight="semibold">
                       {e.name}
                     </T>
                     {e.description ? (
@@ -96,15 +116,18 @@ export default function CompetencesScreen() {
                           </View>
                           <View
                             style={{
-                              width: 30,
-                              height: 30,
-                              borderRadius: 15,
+                              minWidth: 32,
+                              height: 32,
+                              paddingHorizontal: 6,
+                              borderRadius: 9,
                               alignItems: "center",
                               justifyContent: "center",
-                              backgroundColor: theme.colors.accentGlass,
+                              backgroundColor: hexToRgba(color, theme.isDark ? 0.16 : 0.1),
+                              borderWidth: 1,
+                              borderColor: hexToRgba(color, 0.24),
                             }}
                           >
-                            <T variant="caption" weight="semibold" tone="accent">
+                            <T style={{ color, fontSize: 12, fontWeight: "800" }}>
                               {skill.abbreviation}
                             </T>
                           </View>

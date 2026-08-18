@@ -8,6 +8,7 @@ import { Screen } from "../src/components/ui/Screen";
 import { T } from "../src/components/ui/Text";
 import { Card } from "../src/components/ui/Card";
 import { Icon } from "../src/components/ui/Icon";
+import { Eyebrow, Chip } from "../src/components/ui/Stats";
 import { formatDayLabel } from "../src/lib/format";
 
 export default function ActualitesScreen() {
@@ -31,6 +32,8 @@ export default function ActualitesScreen() {
     [newsData]
   );
 
+  const nonLues = sorted.filter((i: any) => !i.read).length;
+
   function handleOpen(item: any) {
     const opening = openId !== item.id;
     setOpenId(opening ? item.id : null);
@@ -43,8 +46,19 @@ export default function ActualitesScreen() {
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ marginRight: theme.spacing(3) }}>
           <Icon name="chevronLeft" size={22} color={theme.colors.textPrimary} />
         </Pressable>
-        <T variant="hero">Actualités</T>
+        <View style={{ flex: 1 }}>
+          <Eyebrow color={theme.colors.accent}>Mon établissement</Eyebrow>
+          <T variant="hero" style={{ marginTop: 2 }}>
+            Actualités
+          </T>
+        </View>
       </View>
+
+      {nonLues > 0 ? (
+        <View style={{ marginBottom: theme.spacing(4) }}>
+          <Chip color={theme.colors.accent} label={`${nonLues} non lue${nonLues > 1 ? "s" : ""}`} />
+        </View>
+      ) : null}
 
       {sorted.length === 0 ? (
         <Card>
@@ -69,10 +83,13 @@ export default function ActualitesScreen() {
                     }}
                   />
                   <View style={{ flex: 1 }}>
-                    <T variant="caption" tone="secondary" style={{ textTransform: "capitalize" }}>
-                      {item.category?.name} · {formatDayLabel(item.startDate)}
-                    </T>
-                    <T variant="body" weight={!item.read ? "semibold" : "medium"} style={{ marginTop: 2 }}>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                      {item.category?.name ? (
+                        <Chip color={theme.colors.accent} label={item.category.name} />
+                      ) : null}
+                      <Chip color={theme.colors.textTertiary} label={formatDayLabel(item.startDate)} />
+                    </View>
+                    <T variant="body" weight={!item.read ? "semibold" : "medium"}>
                       {item.title ?? "Actualité"}
                     </T>
                     <T variant="caption" tone="tertiary" style={{ marginTop: 2 }}>

@@ -8,6 +8,7 @@ import { Screen } from "../src/components/ui/Screen";
 import { T } from "../src/components/ui/Text";
 import { Card } from "../src/components/ui/Card";
 import { Icon } from "../src/components/ui/Icon";
+import { Eyebrow, Chip } from "../src/components/ui/Stats";
 import { formatDayLabel, formatTime } from "../src/lib/format";
 
 export default function MessagerieScreen() {
@@ -46,7 +47,12 @@ export default function MessagerieScreen() {
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ marginRight: theme.spacing(3) }}>
           <Icon name="chevronLeft" size={22} color={theme.colors.textPrimary} />
         </Pressable>
-        <T variant="hero">Messagerie</T>
+        <View style={{ flex: 1 }}>
+          <Eyebrow color={theme.colors.accent}>Mes échanges</Eyebrow>
+          <T variant="hero" style={{ marginTop: 2 }}>
+            Messagerie
+          </T>
+        </View>
       </View>
 
       <Card style={{ marginBottom: theme.spacing(5), backgroundColor: theme.colors.accentGlass, borderWidth: 0 }}>
@@ -80,10 +86,17 @@ export default function MessagerieScreen() {
                     }}
                   />
                   <View style={{ flex: 1 }}>
-                    <T variant="caption" tone="secondary" style={{ textTransform: "capitalize" }}>
-                      {d.recipientName ?? d.creator ?? "Discussion"} · {formatDayLabel(d.date)}
-                    </T>
-                    <T variant="body" weight={d.numberOfMessagesUnread > 0 ? "semibold" : "medium"} style={{ marginTop: 2 }}>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                      <Chip
+                        color={theme.colors.accent}
+                        label={d.recipientName ?? d.creator ?? "Discussion"}
+                      />
+                      <Chip color={theme.colors.textTertiary} label={formatDayLabel(d.date)} />
+                      {d.numberOfMessagesUnread > 0 ? (
+                        <Chip color={theme.colors.warning} label={`${d.numberOfMessagesUnread} non lu${d.numberOfMessagesUnread > 1 ? "s" : ""}`} />
+                      ) : null}
+                    </View>
+                    <T variant="body" weight={d.numberOfMessagesUnread > 0 ? "semibold" : "medium"}>
                       {d.subject}
                     </T>
 
