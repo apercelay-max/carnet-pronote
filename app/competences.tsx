@@ -9,7 +9,7 @@ import { Screen } from "../src/components/ui/Screen";
 import { T } from "../src/components/ui/Text";
 import { Card } from "../src/components/ui/Card";
 import { Icon } from "../src/components/ui/Icon";
-import { Eyebrow, Chip, StatTile, StatRow } from "../src/components/ui/Stats";
+import { Eyebrow, Chip, StatTile, StatRow, BarreMatiere } from "../src/components/ui/Stats";
 import { colorForSubject, hexToRgba } from "../src/theme/palette";
 import { formatDayLabel } from "../src/lib/format";
 
@@ -72,9 +72,9 @@ export default function CompetencesScreen() {
           {sorted.map((e) => {
             const color = colorForSubject(e.subject.name, subjectColors);
             return (
-              <Card key={e.id} padded>
-                <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-                  <View style={{ width: 4, borderRadius: 2, backgroundColor: color, alignSelf: "stretch", marginRight: 12 }} />
+              <Card key={e.id} padded tint={color}>
+                <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+                  <BarreMatiere color={color} />
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
                       <Chip color={color} label={e.subject.name} />
