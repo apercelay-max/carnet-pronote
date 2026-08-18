@@ -10,6 +10,7 @@ import { Icon } from "../../src/components/ui/Icon";
 import { Eyebrow, Chip } from "../../src/components/ui/Stats";
 import { colorForSubject, hexToRgba } from "../../src/theme/palette";
 import { useFichesStore } from "../../src/store/useFichesStore";
+import { cartesDepuisFiche } from "../../src/lib/fiches";
 
 export default function FicheScreen() {
   const theme = useTheme();
@@ -55,6 +56,9 @@ export default function FicheScreen() {
   // les modes « résumé » et « points » seuls restent complets.
   const resumeNormalise = new Set(g.resume.map((p) => p.slice(0, 60)));
   const points = montrerResume ? g.points.filter((p) => !resumeNormalise.has(p.slice(0, 60))) : g.points;
+  // Nombre de cartes révisables : on ne propose le bouton flashcards que
+  // s'il y a vraiment de quoi se tester, plutôt que d'ouvrir un écran vide.
+  const nbCartes = cartesDepuisFiche(g).length;
   const montrerDefs = fiche.mode === "fiche" && g.definitions.length > 0;
   const montrerMots = fiche.mode === "fiche" && g.motsCles.length > 0;
 
@@ -162,6 +166,29 @@ export default function FicheScreen() {
           </View>
         </Section>
       )}
+
+      {nbCartes > 0 ? (
+        <Pressable
+          onPress={() => router.push(`/flashcards?fiche=${fiche.id}`)}
+          style={{
+            marginBottom: theme.spacing(5),
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            paddingVertical: 13,
+            borderRadius: theme.radius.md,
+            borderWidth: 1,
+            borderColor: hexToRgba(color, 0.28),
+            backgroundColor: hexToRgba(color, theme.isDark ? 0.12 : 0.08),
+          }}
+        >
+          <Icon name="book" size={17} color={color} />
+          <T variant="body" weight="semibold" style={{ color }}>
+            Réviser en flashcards ({nbCartes})
+          </T>
+        </Pressable>
+      ) : null}
 
       <Section titre="Mes notes" color={color}>
         <TextInput
