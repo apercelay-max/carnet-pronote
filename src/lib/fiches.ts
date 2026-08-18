@@ -324,3 +324,71 @@ export function genererFiche(texteBrut: string): FicheGeneree {
     phrasesTrouvees: phrases.length,
   };
 }
+
+// --- Flashcards --------------------------------------------------------
+
+export type Carte = { recto: string; verso: string; source: "definition" | "trou" };
+
+/**
+ * Fabrique des cartes recto-verso à partir d'une fiche DÉJÀ générée.
+ * Aucune IA ici non plus : deux mécanismes seulement.
+ *  1. Chaque définition trouvée devient une carte terme -> sens.
+ *  2. Chaque point clé contenant un mot-clé important devient un texte à trou.
+ *
+ * On ne fabrique JAMAIS de fausse question : si la fiche ne contient ni
+ * définition ni mot-clé exploitable, on renvoie une liste vide et l'écran le
+ * dit franchement plutôt que d'inventer des questions creuses.
+ */
+export function cartesDepuisFiche(f: FicheGeneree): Carte[] {
+  const cartes: Carte[] = [];
+  const vus = new Set<string>();
+
+  f.definitions.forEach((d) => {
+    const cle = normalise(d.terme);
+    if (vus.has(cle)) return;
+    vus.add(cle);
+    cartes.push({ recto: d.terme, verso: d.sens, source: "definition" });
+  });
+
+  // Textes à trou : on masque le mot-clé le plus significatif de la phrase.
+  // On saute les points déjà couverts par une définition, sinon on pose deux
+  // fois la même question sous deux formes.
+  f.points.forEach((point) => {
+    const motCache = f.motsCles.find((m) => {
+      const cle = normalise(m);
+      return cle.length >= 5 && !vus.has(cle) && contientMot(point, m);
+    });
+    if (!motCache) return;
+
+    vus.add(normalise(motCache));
+    cartes.push({
+      recto: masquerMot(point, motCache),
+      verso: motCache,
+      source: "trou",
+    });
+  });
+
+  return cartes;
+}
+
+/** Le mot apparaît-il dans la phrase, indépendamment des accents et de la casse ? */
+function contientMot(phrase: string, mot: string): boolean {
+  return phrase
+    .split(/[\s'’,;.()[\]"«»:!?]+/)
+    .some((brut) => normalise(brut) === normalise(mot));
+}
+
+/** Remplace toutes les occurrences du mot par des points de suspension. */
+function masquerMot(phrase: string, mot: string): string {
+  const cible = normalise(mot);
+  return phrase
+    .split(/(\s+)/)
+    .map((morceau) => {
+      if (/^\s+$/.test(morceau)) return morceau;
+      // On isole la ponctuation collée au mot pour ne pas l'effacer avec.
+      const m = morceau.match(/^([^\wÀ-ÿ]*)(.*?)([^\wÀ-ÿ]*)$/);
+      if (!m) return morceau;
+      return normalise(m[2]) === cible ? `${m[1]}______${m[3]}` : morceau;
+    })
+    .join("");
+}
