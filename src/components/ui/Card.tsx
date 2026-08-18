@@ -23,11 +23,15 @@ export function Card({ children, onPress, style, padded = true, elevated = false
   const { card } = theme.structure;
   const c = theme.colors;
   const isPaper = card.treatment === "paper-margin";
+  const isLineBadge = card.treatment === "line-badge";
 
   const base: ViewStyle = {
     backgroundColor: c.surface,
     borderRadius: card.radius,
-    overflow: "hidden",
+    // `overflow: hidden` découperait l'ombre dure décalée du style Pop, qui
+    // déborde volontairement de la carte. On ne le garde que pour les
+    // traitements dont la décoration doit être rognée aux coins arrondis.
+    overflow: card.treatment === "hard-shadow" ? "visible" : "hidden",
   };
 
   let extra: ViewStyle = {};
@@ -78,6 +82,34 @@ export function Card({ children, onPress, style, padded = true, elevated = false
       borderColor: c.borderSoft,
       backgroundColor: elevated ? c.surfaceElevated : c.surface,
     };
+  } else if (card.treatment === "line-badge") {
+    // Métro : gros bandeau de couleur à gauche, comme une ligne de transport.
+    // Le `tint` passé par l'écran (couleur de la matière) prime sur le signal
+    // du style, pour que chaque matière garde bien "sa" ligne.
+    extra = { borderWidth: 0 };
+    decoration = (
+      <View
+        style={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          left: 0,
+          width: 6,
+          backgroundColor: tint ?? theme.signal,
+        }}
+      />
+    );
+  } else if (card.treatment === "hard-shadow") {
+    // Pop : bordure franche + ombre pleine décalée, sans flou du tout.
+    extra = {
+      borderWidth: card.borderWidth,
+      borderColor: c.textPrimary,
+      shadowColor: c.textPrimary,
+      shadowOffset: { width: 4, height: 4 },
+      shadowOpacity: card.shadowOpacity,
+      shadowRadius: 0,
+      elevation: 0,
+    };
   } else if (card.treatment === "bold-border") {
     extra = { borderWidth: card.borderWidth, borderColor: c.textPrimary };
   } else if (card.treatment === "paper-margin") {
@@ -109,7 +141,7 @@ export function Card({ children, onPress, style, padded = true, elevated = false
     ? {
         paddingVertical: theme.spacing(4),
         paddingRight: theme.spacing(4),
-        paddingLeft: isPaper ? theme.spacing(4) + 12 : theme.spacing(4),
+        paddingLeft: isPaper ? theme.spacing(4) + 12 : isLineBadge ? theme.spacing(4) + 8 : theme.spacing(4),
       }
     : { padding: 0 };
 

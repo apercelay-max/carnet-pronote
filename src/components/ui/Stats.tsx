@@ -264,3 +264,17 @@ export function Sparkline({
     </Svg>
   );
 }
+
+/**
+ * Petite barre verticale de couleur devant une ligne (matière, fiche…).
+ *
+ * Rend `null` quand le style choisi est « Métro » : ce style dessine déjà un
+ * gros bandeau de couleur sur le bord gauche de la carte, et garder les deux
+ * donnait deux barres côte à côte. Chaque écran passe simplement `tint` à sa
+ * <Card> pour que le bandeau prenne la couleur de la matière.
+ */
+export function BarreMatiere({ color, minHeight = 34 }: { color: string; minHeight?: number }) {
+  const theme = useTheme();
+  if (theme.structure.card.treatment === "line-badge") return null;
+  return <View style={{ width: 4, alignSelf: "stretch", minHeight, borderRadius: 2, backgroundColor: color }} />;
+}
