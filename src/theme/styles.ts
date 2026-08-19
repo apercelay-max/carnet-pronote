@@ -378,7 +378,12 @@ export type CardTreatment =
   | "flat-fill"
   | "line-badge"
   | "hard-shadow";
-export type TabBarTreatment = "floating-pill" | "bordered-panel" | "solid-block" | "tabbed-ruler";
+export type TabBarTreatment =
+  | "floating-pill"
+  | "bordered-panel"
+  | "solid-block"
+  | "tabbed-ruler"
+  | "liquid-glass";
 
 export type StyleStructure = {
   card: {
@@ -466,7 +471,10 @@ export const STYLE_STRUCTURE: Record<StyleId, StyleStructure> = {
   },
   forge: {
     card: { treatment: "flat-fill", radius: 14, borderWidth: 1, shadowOpacity: 0 },
-    tabBar: { treatment: "bordered-panel", radius: 18 },
+    // "liquid-glass" reprend telle quelle la barre du bas de PPL Tracker :
+    // pilule flottante en verre dépoli (flou + reflet), voir _layout.tsx et
+    // TabButton.tsx pour le rendu réel du traitement.
+    tabBar: { treatment: "liquid-glass", radius: 22 },
     typography: { headingWeight: "800", mono: false },
     signal: { light: "#C02020", dark: "#E03030" },
     accentBarColors: [],
