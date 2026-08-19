@@ -31,8 +31,16 @@ export const TabButton = forwardRef<View, Props>(({ isFocused, icon, label, ...r
   let topMark: React.ReactNode = null;
   let bottomMark: React.ReactNode = null;
   let textColor = isFocused ? activeColor : inactiveColor;
+  // Sur PPL, l'icône passe de contour à "pleine" (SF Symbols) quand l'onglet
+  // est actif. On n'a pas de tracé rempli séparé pour chaque icône ici, donc
+  // on approche cette bascule avec un trait plus épais + la couleur d'accent
+  // — même esprit, sans dupliquer tout le set d'icônes.
+  let iconStrokeWidth = 1.8;
 
-  if (treatment === "floating-pill") {
+  if (treatment === "liquid-glass") {
+    iconBoxStyle.backgroundColor = "transparent";
+    iconStrokeWidth = isFocused ? 2.2 : 1.7;
+  } else if (treatment === "floating-pill") {
     iconBoxStyle.backgroundColor = isFocused ? theme.colors.accentGlass : "transparent";
   } else if (treatment === "bordered-panel") {
     iconBoxStyle.backgroundColor = "transparent";
@@ -88,7 +96,7 @@ export const TabButton = forwardRef<View, Props>(({ isFocused, icon, label, ...r
     >
       {topMark}
       <View style={iconBoxStyle}>
-        <Icon name={icon} size={19} color={iconColor} />
+        <Icon name={icon} size={19} color={iconColor} strokeWidth={iconStrokeWidth} />
       </View>
       {bottomMark}
       {/* Une seule ligne : avec 6 onglets, un libellé long comme « Emploi du
@@ -97,7 +105,14 @@ export const TabButton = forwardRef<View, Props>(({ isFocused, icon, label, ...r
         variant="caption"
         weight={isFocused ? "semibold" : "regular"}
         numberOfLines={1}
-        style={{ color: textColor, fontSize: 10.5, maxWidth: "100%" }}
+        style={{
+          color: textColor,
+          // PPL affiche son libellé en 9px sous chaque icône (voir
+          // tabLabel dans NavBar.tsx) : on reprend la même taille pour ce
+          // traitement précis, un peu plus petite que les autres barres.
+          fontSize: treatment === "liquid-glass" ? 9 : 10.5,
+          maxWidth: "100%",
+        }}
       >
         {label}
       </T>
