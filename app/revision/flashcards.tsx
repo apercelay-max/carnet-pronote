@@ -1,20 +1,21 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Pressable } from "react-native";
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useTheme } from "../src/theme/ThemeProvider";
-import { usePreferencesStore } from "../src/store/usePreferencesStore";
-import { Screen } from "../src/components/ui/Screen";
-import { T } from "../src/components/ui/Text";
-import { Card } from "../src/components/ui/Card";
-import { Icon } from "../src/components/ui/Icon";
-import { Eyebrow, Chip, StatTile, StatRow, Bar } from "../src/components/ui/Stats";
-import { colorForSubject, hexToRgba } from "../src/theme/palette";
-import { cartesDepuisFiche, type Carte } from "../src/lib/fiches";
-import { useFichesStore } from "../src/store/useFichesStore";
+import { useTheme } from "../../src/theme/ThemeProvider";
+import { usePreferencesStore } from "../../src/store/usePreferencesStore";
+import { useRevisionPreferencesStore } from "../../src/store/useRevisionPreferencesStore";
+import { useRevisionSessionStore } from "../../src/store/useRevisionSessionStore";
+import { Screen } from "../../src/components/ui/Screen";
+import { T } from "../../src/components/ui/Text";
+import { Card } from "../../src/components/ui/Card";
+import { Icon } from "../../src/components/ui/Icon";
+import { Eyebrow, Chip, StatTile, StatRow, Bar } from "../../src/components/ui/Stats";
+import { colorForSubject, hexToRgba } from "../../src/theme/palette";
+import { cartesDepuisFiche, type Carte } from "../../src/lib/fiches";
+import { useFichesStore } from "../../src/store/useFichesStore";
 
 export default function FlashcardsScreen() {
-  const theme = useTheme();
-  const router = useRouter();
   const params = useLocalSearchParams<{ fiche?: string }>();
   const fiches = useFichesStore((s) => s.fiches);
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
@@ -28,7 +29,7 @@ export default function FlashcardsScreen() {
   return <Revision fiche={ficheChoisie} />;
 }
 
-// --- Écran 1 : choisir la fiche à réviser -------------------------------
+// --- Écran par défaut de l'onglet : choisir la fiche à réviser ----------
 
 function ChoixDeFiche({ fiches, subjectColors }: { fiches: any[]; subjectColors: Record<string, string> }) {
   const theme = useTheme();
@@ -45,7 +46,12 @@ function ChoixDeFiche({ fiches, subjectColors }: { fiches: any[]; subjectColors:
 
   return (
     <Screen>
-      <EnTete titre="Flashcards" eyebrow="Révision active" />
+      <View style={{ marginBottom: theme.spacing(5) }}>
+        <Eyebrow color={theme.colors.accent}>Révision active</Eyebrow>
+        <T variant="hero" style={{ marginTop: 2 }}>
+          Flashcards
+        </T>
+      </View>
 
       <Card style={{ marginBottom: theme.spacing(5) }}>
         <View style={{ flexDirection: "row", gap: 10 }}>
@@ -69,7 +75,7 @@ function ChoixDeFiche({ fiches, subjectColors }: { fiches: any[]; subjectColors:
               key={fiche.id}
               tint={color}
               padded
-              onPress={() => router.push(`/flashcards?fiche=${fiche.id}`)}
+              onPress={() => router.push(`/revision/flashcards?fiche=${fiche.id}`)}
             >
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ flex: 1, gap: 5 }}>
@@ -101,12 +107,13 @@ function ChoixDeFiche({ fiches, subjectColors }: { fiches: any[]; subjectColors:
   );
 }
 
-// --- Écran 2 : réviser ---------------------------------------------------
+// --- Écran de session : réviser -------------------------------------------
 
 function Revision({ fiche }: { fiche: any }) {
   const theme = useTheme();
   const router = useRouter();
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
+  const animationsEnabled = useRevisionPreferencesStore((s) => s.animationsEnabled);
   const color = colorForSubject(fiche.matiere, subjectColors);
 
   const cartes = useMemo<Carte[]>(() => cartesDepuisFiche(fiche.genere), [fiche]);
@@ -118,6 +125,30 @@ function Revision({ fiche }: { fiche: any }) {
 
   const carte = cartes[index];
   const fini = index >= cartes.length;
+
+  // Signale au _layout de la section révision qu'une session est en cours,
+  // pour qu'il remplace la barre à onglets par la barre de progression
+  // numérotée (RevisionSessionBar) — voir useRevisionSessionStore.
+  useEffect(() => {
+    if (fini || cartes.length === 0) {
+      useRevisionSessionStore.getState().end();
+      return;
+    }
+    useRevisionSessionStore.getState().start({
+      total: cartes.length,
+      onJump: (i) => {
+        setRetournee(false);
+        setIndex(i);
+      },
+      onBack: () => router.replace("/revision/flashcards"),
+    });
+    return () => useRevisionSessionStore.getState().end();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fini, cartes.length]);
+
+  useEffect(() => {
+    if (!fini) useRevisionSessionStore.getState().setIndex(index);
+  }, [index, fini]);
 
   const repondre = (su: boolean) => {
     if (su) setSues((v) => [...v, index]);
@@ -137,7 +168,12 @@ function Revision({ fiche }: { fiche: any }) {
     const total = sues.length + ratees.length;
     return (
       <Screen>
-        <EnTete titre="Terminé" eyebrow={fiche.matiere} eyebrowColor={color} />
+        <View style={{ marginBottom: theme.spacing(5) }}>
+          <Eyebrow color={color}>{fiche.matiere}</Eyebrow>
+          <T variant="hero" style={{ marginTop: 2 }}>
+            Terminé
+          </T>
+        </View>
 
         <Card elevated style={{ marginBottom: theme.spacing(4) }}>
           <Eyebrow color={color}>Ton score</Eyebrow>
@@ -165,7 +201,7 @@ function Revision({ fiche }: { fiche: any }) {
 
         <View style={{ gap: theme.spacing(3) }}>
           <BoutonPlein label="Recommencer" onPress={recommencer} color={color} />
-          <BoutonCreux label="Retour aux fiches" onPress={() => router.replace("/flashcards")} />
+          <BoutonCreux label="Retour aux fiches" onPress={() => router.replace("/revision/flashcards")} />
         </View>
       </Screen>
     );
@@ -173,7 +209,12 @@ function Revision({ fiche }: { fiche: any }) {
 
   return (
     <Screen>
-      <EnTete titre={fiche.titre} eyebrow={fiche.matiere} eyebrowColor={color} />
+      <View style={{ marginBottom: theme.spacing(4) }}>
+        <Eyebrow color={color}>{fiche.matiere}</Eyebrow>
+        <T variant="hero" style={{ marginTop: 2 }} numberOfLines={2}>
+          {fiche.titre}
+        </T>
+      </View>
 
       <View style={{ marginBottom: theme.spacing(4), gap: 8 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
@@ -187,26 +228,30 @@ function Revision({ fiche }: { fiche: any }) {
         <Bar value={index / cartes.length} color={color} />
       </View>
 
-      <Pressable onPress={() => setRetournee((v) => !v)}>
-        <Card elevated style={{ minHeight: 220, justifyContent: "center" }}>
+      <FlipCard
+        flipped={retournee}
+        animated={animationsEnabled}
+        onPress={() => setRetournee((v) => !v)}
+        front={
           <View style={{ gap: 12, paddingVertical: theme.spacing(4) }}>
-            <Eyebrow color={retournee ? theme.colors.success : color}>
-              {retournee ? "Réponse" : carte.source === "definition" ? "Définis" : "Complète"}
-            </Eyebrow>
-            <T
-              variant="title"
-              style={{ lineHeight: 30, color: retournee ? theme.colors.success : theme.colors.textPrimary }}
-            >
-              {retournee ? carte.verso : carte.recto}
+            <Eyebrow color={color}>{carte.source === "definition" ? "Définis" : "Complète"}</Eyebrow>
+            <T variant="title" style={{ lineHeight: 30 }}>
+              {carte.recto}
             </T>
-            {!retournee ? (
-              <T variant="caption" tone="tertiary" style={{ marginTop: 4 }}>
-                Appuie sur la carte pour voir la réponse.
-              </T>
-            ) : null}
+            <T variant="caption" tone="tertiary" style={{ marginTop: 4 }}>
+              Appuie sur la carte pour voir la réponse.
+            </T>
           </View>
-        </Card>
-      </Pressable>
+        }
+        back={
+          <View style={{ gap: 12, paddingVertical: theme.spacing(4) }}>
+            <Eyebrow color={theme.colors.success}>Réponse</Eyebrow>
+            <T variant="title" style={{ lineHeight: 30, color: theme.colors.success }}>
+              {carte.verso}
+            </T>
+          </View>
+        }
+      />
 
       {retournee ? (
         <View style={{ flexDirection: "row", gap: theme.spacing(3), marginTop: theme.spacing(4) }}>
@@ -226,25 +271,74 @@ function Revision({ fiche }: { fiche: any }) {
   );
 }
 
-// --- Petits composants partagés -----------------------------------------
+// --- Carte à retournement ---------------------------------------------
 
-function EnTete({ titre, eyebrow, eyebrowColor }: { titre: string; eyebrow: string; eyebrowColor?: string }) {
-  const theme = useTheme();
-  const router = useRouter();
+// Retournement recto/verso façon carte physique : deux faces superposées,
+// chacune tournée à 180° l'une de l'autre sur l'axe Y, `backfaceVisibility`
+// cache celle qui montre son dos. L'opacité bascule en plus au croisement
+// des 90° en filet de sécurité (au cas où `backfaceVisibility` serait mal
+// supporté sur une cible donnée) pour ne jamais laisser voir un texte
+// "miroir".
+function FlipCard({
+  front,
+  back,
+  flipped,
+  animated,
+  onPress,
+}: {
+  front: React.ReactNode;
+  back: React.ReactNode;
+  flipped: boolean;
+  animated: boolean;
+  onPress: () => void;
+}) {
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    rotation.value = animated ? withTiming(flipped ? 180 : 0, { duration: 350 }) : flipped ? 180 : 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flipped, animated]);
+
+  const frontStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: 1000 }, { rotateY: `${rotation.value}deg` }],
+    opacity: rotation.value >= 90 ? 0 : 1,
+    backfaceVisibility: "hidden" as const,
+  }));
+  const backStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: 1000 }, { rotateY: `${rotation.value - 180}deg` }],
+    opacity: rotation.value >= 90 ? 1 : 0,
+    backfaceVisibility: "hidden" as const,
+  }));
+
   return (
-    <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: theme.spacing(5) }}>
-      <Pressable onPress={() => router.back()} hitSlop={10} style={{ marginRight: theme.spacing(3), marginTop: 6 }}>
-        <Icon name="chevronLeft" size={22} color={theme.colors.textPrimary} />
-      </Pressable>
-      <View style={{ flex: 1 }}>
-        <Eyebrow color={eyebrowColor ?? theme.colors.accent}>{eyebrow}</Eyebrow>
-        <T variant="hero" style={{ marginTop: 2 }} numberOfLines={2}>
-          {titre}
-        </T>
+    <Pressable onPress={onPress}>
+      <View style={{ minHeight: 220 }}>
+        <Animated.View
+          style={[
+            { position: "absolute", left: 0, right: 0 },
+            frontStyle,
+          ]}
+        >
+          <Card elevated style={{ minHeight: 220, justifyContent: "center" }}>
+            {front}
+          </Card>
+        </Animated.View>
+        <Animated.View
+          style={[
+            { position: "absolute", left: 0, right: 0 },
+            backStyle,
+          ]}
+        >
+          <Card elevated style={{ minHeight: 220, justifyContent: "center" }}>
+            {back}
+          </Card>
+        </Animated.View>
       </View>
-    </View>
+    </Pressable>
   );
 }
+
+// --- Petits composants partagés -----------------------------------------
 
 function BoutonPlein({ label, onPress, color }: { label: string; onPress: () => void; color?: string }) {
   const theme = useTheme();

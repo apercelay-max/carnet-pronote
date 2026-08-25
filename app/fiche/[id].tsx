@@ -3,6 +3,7 @@ import { View, Pressable, TextInput } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { usePreferencesStore } from "../../src/store/usePreferencesStore";
+import { useRevisionPreferencesStore } from "../../src/store/useRevisionPreferencesStore";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { Card } from "../../src/components/ui/Card";
@@ -11,6 +12,11 @@ import { Eyebrow, Chip } from "../../src/components/ui/Stats";
 import { colorForSubject, hexToRgba } from "../../src/theme/palette";
 import { useFichesStore } from "../../src/store/useFichesStore";
 import { cartesDepuisFiche } from "../../src/lib/fiches";
+
+// Confort de lecture (Réglages > section révision) : un cran de plus que le
+// réglage général de l'appli, appliqué seulement au texte des fiches — la
+// lecture quotidienne toute l'année mérite son propre réglage.
+const READING_SCALE: Record<string, number> = { sm: 0.92, md: 1, lg: 1.14 };
 
 export default function FicheScreen() {
   const theme = useTheme();
@@ -21,6 +27,8 @@ export default function FicheScreen() {
   const setNotesPerso = useFichesStore((s) => s.setNotesPerso);
   const supprimer = useFichesStore((s) => s.supprimer);
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
+  const readingFontScale = useRevisionPreferencesStore((s) => s.readingFontScale);
+  const rScale = READING_SCALE[readingFontScale] ?? 1;
 
   const [confirmSuppr, setConfirmSuppr] = useState(false);
 
@@ -98,7 +106,7 @@ export default function FicheScreen() {
           ) : (
             <View style={{ gap: 10 }}>
               {g.resume.map((p, i) => (
-                <T key={i} variant="body" style={{ lineHeight: 22 }}>
+                <T key={i} variant="body" style={{ fontSize: theme.type.body * rScale, lineHeight: 22 * rScale }}>
                   {p}
                 </T>
               ))}
@@ -130,7 +138,7 @@ export default function FicheScreen() {
                   >
                     <T style={{ color, fontSize: 11, fontWeight: "800" }}>{i + 1}</T>
                   </View>
-                  <T variant="body" style={{ flex: 1, lineHeight: 22 }}>
+                  <T variant="body" style={{ flex: 1, fontSize: theme.type.body * rScale, lineHeight: 22 * rScale }}>
                     {p}
                   </T>
                 </View>
@@ -148,7 +156,7 @@ export default function FicheScreen() {
                 <T variant="body" weight="semibold" style={{ color }}>
                   {d.terme}
                 </T>
-                <T variant="caption" tone="secondary" style={{ lineHeight: 19 }}>
+                <T variant="caption" tone="secondary" style={{ fontSize: theme.type.caption * rScale, lineHeight: 19 * rScale }}>
                   {d.sens}
                 </T>
               </View>
@@ -169,7 +177,7 @@ export default function FicheScreen() {
 
       {nbCartes > 0 ? (
         <Pressable
-          onPress={() => router.push(`/flashcards?fiche=${fiche.id}`)}
+          onPress={() => router.push(`/revision/flashcards?fiche=${fiche.id}`)}
           style={{
             marginBottom: theme.spacing(5),
             flexDirection: "row",

@@ -1,18 +1,18 @@
 import React, { useEffect, useCallback, useMemo } from "react";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { useTheme } from "../src/theme/ThemeProvider";
-import { useSessionStore } from "../src/store/useSessionStore";
-import { useDataStore } from "../src/store/useDataStore";
-import { usePreferencesStore } from "../src/store/usePreferencesStore";
-import { Screen } from "../src/components/ui/Screen";
-import { T } from "../src/components/ui/Text";
-import { Card } from "../src/components/ui/Card";
-import { Icon } from "../src/components/ui/Icon";
-import { Eyebrow, Chip, BigStat, StatTile, StatRow } from "../src/components/ui/Stats";
-import { colorForSubject, hexToRgba } from "../src/theme/palette";
-import { formatDayLabel, formatTime } from "../src/lib/format";
-import { useFichesStore } from "../src/store/useFichesStore";
+import { useTheme } from "../../src/theme/ThemeProvider";
+import { useSessionStore } from "../../src/store/useSessionStore";
+import { useDataStore } from "../../src/store/useDataStore";
+import { usePreferencesStore } from "../../src/store/usePreferencesStore";
+import { Screen } from "../../src/components/ui/Screen";
+import { T } from "../../src/components/ui/Text";
+import { Card } from "../../src/components/ui/Card";
+import { Icon } from "../../src/components/ui/Icon";
+import { Eyebrow, Chip, BigStat, StatTile, StatRow } from "../../src/components/ui/Stats";
+import { colorForSubject, hexToRgba } from "../../src/theme/palette";
+import { formatDayLabel, formatTime } from "../../src/lib/format";
+import { useFichesStore } from "../../src/store/useFichesStore";
 
 function joursAvant(d: Date): number {
   const ms = new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0);
@@ -78,16 +78,11 @@ export default function ControlesScreen() {
 
   return (
     <Screen onRefresh={isDemo ? undefined : sync} refreshing={loading}>
-      <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: theme.spacing(5) }}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={{ marginRight: theme.spacing(3), marginTop: 6 }}>
-          <Icon name="chevronLeft" size={22} color={theme.colors.textPrimary} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Eyebrow color={theme.colors.accent}>Compte à rebours</Eyebrow>
-          <T variant="hero" style={{ marginTop: 2 }}>
-            Contrôles
-          </T>
-        </View>
+      <View style={{ marginBottom: theme.spacing(5) }}>
+        <Eyebrow color={theme.colors.accent}>Compte à rebours</Eyebrow>
+        <T variant="hero" style={{ marginTop: 2 }}>
+          Contrôles
+        </T>
       </View>
 
       {controles.length === 0 ? (
