@@ -87,11 +87,11 @@ export async function loginWithPassword(
   password: string,
   deviceUUID?: string
 ): Promise<{ session: SessionHandle; refresh: RefreshInformation; credentials: StoredCredentials }> {
-  const { cleanUrl } = await checkInstance(url);
-  const session = createSessionHandle(platformFetcher());
-  const uuid = deviceUUID ?? randomDeviceUUID();
-
   try {
+    const { cleanUrl } = await checkInstance(url);
+    const session = createSessionHandle(platformFetcher());
+    const uuid = deviceUUID ?? randomDeviceUUID();
+
     const refresh = await loginCredentials(session, {
       url: cleanUrl,
       kind: AccountKind.STUDENT,
@@ -111,6 +111,13 @@ export async function loginWithPassword(
 
     return { session, refresh, credentials };
   } catch (err: any) {
+    // checkInstance() est volontairement inclus dans ce try : sinon une
+    // erreur venant d'elle (site surchargé, IP suspendue...) échappe à ce
+    // wrapping et remonte telle quelle jusqu'à l'écran de login, qui ne sait
+    // afficher que PronoteAuthError/PronoteENTError -> l'utilisateur se
+    // retrouve avec un message générique "vérifie tes identifiants" pour un
+    // problème qui n'a rien à voir avec son mot de passe.
+    if (err instanceof PronoteENTError) throw err;
     throw new PronoteAuthError(
       err?.message ?? "Identifiant ou mot de passe incorrect."
     );
