@@ -95,45 +95,62 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   refreshAll: async (session) => {
     set({ loading: true, error: null });
-    try {
-      const now = new Date();
-      const in21Days = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const in21Days = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000);
 
-      const [grades, notebookData, timetable, assignments, evaluations, resources, discussions, newsData] =
-        await Promise.all([
-          fetchGrades(session),
-          fetchNotebook(session),
-          // Même horizon que les devoirs (21 jours) : Pronote marque les cours
-          // qui auront un contrôle (`test: true`) directement sur l'emploi du
-          // temps, donc on a besoin de voir plus loin que la semaine en cours
-          // pour construire une vraie liste de "contrôles à venir".
-          fetchTimetableRange(session, startOfWeek(now), in21Days),
-          fetchAssignmentsRange(session, now, in21Days),
-          fetchEvaluations(session),
-          // Contenu des cours : semaine en cours + les 21 jours à venir, pour
-          // pouvoir préparer le sac de cours du lendemain avec la vraie
-          // matière de chaque contenu.
-          fetchResourcesRange(session, startOfWeek(now), in21Days),
-          fetchDiscussions(session),
-          fetchNews(session),
-        ]);
+    // Un Promise.all() ferait échouer TOUTE la synchro dès qu'un seul appel
+    // rate (ex: la messagerie ou les actualités qui coincent sur un serveur
+    // Pronote capricieux) -> l'appli affichait "aucune donnée" partout alors
+    // que le reste (notes, devoirs, emploi du temps...) avait très bien
+    // fonctionné. Avec allSettled, chaque source garde son dernier résultat
+    // valide si son appel échoue, et seule celle-là manque à l'appel.
+    const [gradesR, notebookR, timetableR, assignmentsR, evaluationsR, resourcesR, discussionsR, newsR] =
+      await Promise.allSettled([
+        fetchGrades(session),
+        fetchNotebook(session),
+        // Même horizon que les devoirs (21 jours) : Pronote marque les cours
+        // qui auront un contrôle (`test: true`) directement sur l'emploi du
+        // temps, donc on a besoin de voir plus loin que la semaine en cours
+        // pour construire une vraie liste de "contrôles à venir".
+        fetchTimetableRange(session, startOfWeek(now), in21Days),
+        fetchAssignmentsRange(session, now, in21Days),
+        fetchEvaluations(session),
+        // Contenu des cours : semaine en cours + les 21 jours à venir, pour
+        // pouvoir préparer le sac de cours du lendemain avec la vraie
+        // matière de chaque contenu.
+        fetchResourcesRange(session, startOfWeek(now), in21Days),
+        fetchDiscussions(session),
+        fetchNews(session),
+      ]);
 
-      set({
-        grades,
-        notebookData,
-        timetable,
-        assignments: assignments.sort((a, b) => a.deadline.getTime() - b.deadline.getTime()),
-        evaluations: evaluations.sort((a, b) => b.date.getTime() - a.date.getTime()),
-        resources,
-        discussions,
-        newsData,
-        isDemoData: false,
-        lastSyncedAt: Date.now(),
-        loading: false,
-      });
-    } catch (err: any) {
-      set({ loading: false, error: err?.message ?? "Impossible de récupérer tes données." });
-    }
+    const current = get();
+    const failures: string[] = [];
+    const pick = <T,>(result: PromiseSettledResult<T>, label: string, fallback: T): T => {
+      if (result.status === "fulfilled") return result.value;
+      failures.push(label);
+      return fallback;
+    };
+
+    const assignments = pick(assignmentsR, "devoirs", current.assignments);
+    const evaluations = pick(evaluationsR, "contrôles", current.evaluations);
+
+    set({
+      grades: pick(gradesR, "notes", current.grades),
+      notebookData: pick(notebookR, "cahier de textes", current.notebookData),
+      timetable: pick(timetableR, "emploi du temps", current.timetable),
+      assignments: [...assignments].sort((a, b) => a.deadline.getTime() - b.deadline.getTime()),
+      evaluations: [...evaluations].sort((a, b) => b.date.getTime() - a.date.getTime()),
+      resources: pick(resourcesR, "ressources", current.resources),
+      discussions: pick(discussionsR, "messagerie", current.discussions),
+      newsData: pick(newsR, "actualités", current.newsData),
+      isDemoData: false,
+      lastSyncedAt: Date.now(),
+      loading: false,
+      error:
+        failures.length > 0
+          ? `Certaines données n'ont pas pu être récupérées : ${failures.join(", ")}.`
+          : null,
+    });
   },
 
   toggleAssignmentDone: async (session, id, done) => {

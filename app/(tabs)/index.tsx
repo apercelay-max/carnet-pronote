@@ -21,8 +21,18 @@ export default function DashboardScreen() {
   const session = useSessionStore((s) => s.session);
   const isDemo = useSessionStore((s) => s.isDemo);
   const displayName = useSessionStore((s) => s.displayName);
-  const { grades, notebookData, timetable, assignments, evaluations, discussions, newsData, loading, refreshAll } =
-    useDataStore();
+  const {
+    grades,
+    notebookData,
+    timetable,
+    assignments,
+    evaluations,
+    discussions,
+    newsData,
+    loading,
+    error: syncError,
+    refreshAll,
+  } = useDataStore();
   const widgetOrder = usePreferencesStore((s) => s.widgetOrder);
   const hiddenWidgets = usePreferencesStore((s) => s.hiddenWidgets);
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
@@ -45,6 +55,24 @@ export default function DashboardScreen() {
         </T>
         <T variant="hero">{displayName ?? "Salut"}</T>
       </View>
+
+      {syncError ? (
+        <Card
+          padded
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderColor: theme.colors.danger,
+            marginBottom: theme.spacing(4),
+          }}
+        >
+          <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}>
+            <Icon name="warning" size={16} color={theme.colors.danger} />
+            <T variant="caption" tone="danger" style={{ flex: 1 }}>
+              {syncError}
+            </T>
+          </View>
+        </Card>
+      ) : null}
 
       <View style={{ gap: theme.spacing(4) }}>
         {visibleWidgets.map((id) => (
