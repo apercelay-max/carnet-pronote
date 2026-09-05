@@ -124,10 +124,14 @@ export const useDataStore = create<DataState>((set, get) => ({
       ]);
 
     const current = get();
-    const failures: string[] = [];
+    const failures: { label: string; reason: string }[] = [];
     const pick = <T,>(result: PromiseSettledResult<T>, label: string, fallback: T): T => {
       if (result.status === "fulfilled") return result.value;
-      failures.push(label);
+      const reason = result.reason?.message ?? String(result.reason);
+      failures.push({ label, reason });
+      // Toujours dans la console même si la bannière n'affiche qu'un résumé :
+      // utile pour diagnostiquer sans avoir à reproduire l'échec en direct.
+      console.error(`[refreshAll] ${label} :`, result.reason);
       return fallback;
     };
 
@@ -148,7 +152,9 @@ export const useDataStore = create<DataState>((set, get) => ({
       loading: false,
       error:
         failures.length > 0
-          ? `Certaines données n'ont pas pu être récupérées : ${failures.join(", ")}.`
+          ? `Certaines données n'ont pas pu être récupérées : ${failures
+              .map((f) => `${f.label} (${f.reason})`)
+              .join(", ")}.`
           : null,
     });
   },
