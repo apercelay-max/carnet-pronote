@@ -11,6 +11,8 @@ import { Icon } from "../../src/components/ui/Icon";
 import { Eyebrow, Chip, StatTile, StatRow } from "../../src/components/ui/Stats";
 import { colorForSubject } from "../../src/theme/palette";
 import { formatTime, formatDayOfWeekLetter } from "../../src/lib/format";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { ResourceContentCategory } from "pawnote";
 
 const CATEGORY_LABELS: Record<number, string> = {
@@ -26,11 +28,15 @@ const CATEGORY_LABELS: Record<number, string> = {
   [ResourceContentCategory.VISIO]: "Visio",
 };
 
-function weekDates(): Date[] {
+// `weekOffset` compte en semaines depuis la semaine courante (0 = cette
+// semaine, 1 = la suivante...) : c'est ce qui manquait pour voir plus loin
+// que "cette semaine" -- les données, elles, sont déjà chargées sur 3
+// semaines (voir fetchTimetableRange dans useDataStore).
+function weekDates(weekOffset = 0): Date[] {
   const now = new Date();
   const day = (now.getDay() + 6) % 7;
   const monday = new Date(now);
-  monday.setDate(now.getDate() - day);
+  monday.setDate(now.getDate() - day + weekOffset * 7);
   monday.setHours(0, 0, 0, 0);
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
@@ -38,6 +44,10 @@ function weekDates(): Date[] {
     return d;
   });
 }
+
+// Emploi du temps chargé sur 3 semaines (fetchTimetableRange) : au-delà,
+// la navigation n'aurait aucune donnée à montrer.
+const MAX_WEEK_OFFSET = 2;
 
 function isSameDay(a: Date, b: Date) {
   return a.toDateString() === b.toDateString();
@@ -50,10 +60,24 @@ export default function TimetableScreen() {
   const { timetable, resources, loading, refreshAll } = useDataStore();
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
 
-  const days = useMemo(weekDates, []);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const days = useMemo(() => weekDates(weekOffset), [weekOffset]);
   const todayIndex = days.findIndex((d) => isSameDay(d, new Date()));
   const [selected, setSelected] = useState(todayIndex >= 0 ? todayIndex : 0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // En changeant de semaine, "today" n'y est presque jamais -- on retombe
+  // sur lundi plutôt que de garder l'index sélectionné de l'autre semaine
+  // (ex: rester sur "vendredi" en arrivant sur une semaine sans cours ce
+  // jour-là donnerait l'impression, à tort, qu'il n'y a toujours rien).
+  useEffect(() => {
+    setSelected(todayIndex >= 0 ? todayIndex : 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekOffset]);
+
+  const changeWeek = (delta: number) => {
+    setWeekOffset((w) => Math.max(0, Math.min(MAX_WEEK_OFFSET, w + delta)));
+  };
 
   // Un contenu de cours correspond à un créneau précis de l'emploi du temps :
   // même matière, même horaire. Si Pronote n'a rien posté pour ce cours, pas
@@ -102,11 +126,64 @@ export default function TimetableScreen() {
   return (
     <Screen scroll={false}>
       <View style={{ paddingHorizontal: theme.spacing(4), paddingTop: theme.spacing(2) }}>
-        <View style={{ marginBottom: theme.spacing(4) }}>
-          <Eyebrow color={theme.colors.accent}>Ma semaine</Eyebrow>
-          <T variant="hero" style={{ marginTop: 2 }}>
-            Emploi du temps
-          </T>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            marginBottom: theme.spacing(4),
+          }}
+        >
+          <View>
+            <Eyebrow color={theme.colors.accent}>
+              {weekOffset === 0
+                ? "Cette semaine"
+                : `Du ${format(days[0], "d MMM", { locale: fr })} au ${format(days[6], "d MMM", { locale: fr })}`}
+            </Eyebrow>
+            <T variant="hero" style={{ marginTop: 2 }}>
+              Emploi du temps
+            </T>
+          </View>
+          {/* Sans ces flèches, l'écran ne montrait QUE la semaine en cours :
+              les 3 semaines déjà chargées (voir fetchTimetableRange) restaient
+              invisibles, ce qui donnait l'impression qu'un jour de la semaine
+              suivante n'avait "aucun cours" alors que la donnée existait. */}
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            <Pressable
+              onPress={() => changeWeek(-1)}
+              disabled={weekOffset === 0}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: theme.radius.md,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: theme.colors.surface,
+                borderWidth: 1,
+                borderColor: theme.colors.borderSoft,
+                opacity: weekOffset === 0 ? 0.4 : 1,
+              }}
+            >
+              <Icon name="chevronLeft" size={16} color={theme.colors.textPrimary} />
+            </Pressable>
+            <Pressable
+              onPress={() => changeWeek(1)}
+              disabled={weekOffset === MAX_WEEK_OFFSET}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: theme.radius.md,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: theme.colors.surface,
+                borderWidth: 1,
+                borderColor: theme.colors.borderSoft,
+                opacity: weekOffset === MAX_WEEK_OFFSET ? 0.4 : 1,
+              }}
+            >
+              <Icon name="chevronRight" size={16} color={theme.colors.textPrimary} />
+            </Pressable>
+          </View>
         </View>
         <View style={{ flexDirection: "row", gap: 8, marginBottom: theme.spacing(5) }}>
           {days.map((d, i) => {
