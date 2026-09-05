@@ -87,6 +87,19 @@ export const DEFAULT_TAB_ORDER: TabId[] = [
   "reglages",
 ];
 
+// Une phrase courte par onglet, affichée uniquement dans le tiroir "+" de la
+// barre liquid-glass (voir TabOverflowDrawer.tsx) — même esprit que
+// TAB_HINTS dans PPL Tracker (NavBar.tsx) : ça évite d'avoir à deviner ce que
+// contient un onglet qu'on a rangé et qu'on ouvre rarement.
+export const TAB_HINTS: Record<TabId, string> = {
+  index: "Ton tableau de bord du jour",
+  notes: "Toutes tes notes et moyennes",
+  "emploi-du-temps": "Ton emploi du temps de la semaine",
+  devoirs: "Devoirs et contrôles à venir",
+  extensions: "Flashcards, révisions et plus",
+  reglages: "Apparence, barre de menus…",
+};
+
 // Même logique que backfillWidgetOrder : quelqu'un qui utilisait déjà l'app
 // avant l'ajout d'un onglet a un tabOrder persisté qui ne le contient pas.
 // Sans ce complément, le nouvel onglet n'apparaîtrait JAMAIS chez cette
@@ -140,6 +153,18 @@ type PreferencesState = {
   hiddenTabs: TabId[];
   tabLabels: Partial<Record<TabId, string>>;
   tabIcons: Partial<Record<TabId, IconName>>;
+  // Onglets "rangés" derrière le bouton + de la barre liquid-glass (voir
+  // _layout.tsx). Absence de cette liste = épinglé directement dans la
+  // capsule ; c'est volontairement l'inverse d'une liste "pinnedTabs" pour
+  // qu'un onglet ajouté plus tard (nouvel onglet, ou onglet qui réapparaît
+  // après un backfill de tabOrder) soit épinglé par défaut sans rien à faire
+  // ici. "reglages" ne doit jamais s'y trouver (toujours épinglé).
+  tabOverflow: TabId[];
+  // Signature (liste d'ids épinglés, jointe) de la config pour laquelle la
+  // personne a déjà fermé le bandeau "barre trop chargée" — le bandeau ne
+  // revient pas tant que la config épinglée ne change pas (même logique que
+  // le localStorage de PPL Tracker, voir NavBar.tsx / DISMISS_KEY).
+  tabBarDismissedSignature: string | null;
   setThemeMode: (mode: ThemeMode) => void;
   setStyle: (id: StyleId) => void;
   setAccent: (accent: AccentKey) => void;
@@ -157,6 +182,16 @@ type PreferencesState = {
   resetTabLabel: (id: TabId) => void;
   setTabIcon: (id: TabId, icon: IconName) => void;
   resetTabIcon: (id: TabId) => void;
+  // Épingle/dépingle un onglet dans la capsule liquid-glass. "reglages" est
+  // ignoré (toujours épinglé) — sinon on perdrait l'accès au réglage qui
+  // permet justement de gérer cette répartition.
+  setTabPinned: (id: TabId, pinned: boolean) => void;
+  // Remplace la liste complète des onglets rangés (utilisé par le bouton
+  // "Ranger dans le +" du bandeau "barre trop chargée" : voir _layout.tsx).
+  // Réinitialise aussi le bandeau ignoré, pour qu'il puisse réapparaître si
+  // la config redevient trop chargée plus tard.
+  setTabOverflow: (ids: TabId[]) => void;
+  dismissTabBarCrowded: (signature: string) => void;
 };
 
 export const usePreferencesStore = create<PreferencesState>()(
@@ -174,6 +209,8 @@ export const usePreferencesStore = create<PreferencesState>()(
       hiddenTabs: [],
       tabLabels: {},
       tabIcons: {},
+      tabOverflow: [],
+      tabBarDismissedSignature: null,
       setThemeMode: (themeMode) => set({ themeMode }),
       setStyle: (styleId) => set({ styleId }),
       setAccent: (accent) => set({ accent }),
@@ -238,6 +275,21 @@ export const usePreferencesStore = create<PreferencesState>()(
           delete next[id];
           return { tabIcons: next };
         }),
+      setTabPinned: (id, pinned) =>
+        set((s) => {
+          if (id === NON_HIDEABLE_TAB) return s;
+          const isOverflow = s.tabOverflow.includes(id);
+          if (pinned === !isOverflow) return s;
+          return {
+            tabOverflow: pinned ? s.tabOverflow.filter((t) => t !== id) : [...s.tabOverflow, id],
+          };
+        }),
+      setTabOverflow: (ids) =>
+        set({
+          tabOverflow: ids.filter((id) => id !== NON_HIDEABLE_TAB),
+          tabBarDismissedSignature: null,
+        }),
+      dismissTabBarCrowded: (signature) => set({ tabBarDismissedSignature: signature }),
     }),
     {
       name: "carnet-preferences",
@@ -262,6 +314,19 @@ export const usePreferencesStore = create<PreferencesState>()(
         // Les personnes qui avaient déjà l'app avant l'ajout du sac de cours
         // n'ont pas subjectMaterials dans leur storage persistant -> objet vide.
         subjectMaterials: (persisted as any)?.subjectMaterials ?? current.subjectMaterials,
+        // Les personnes qui avaient déjà l'app avant l'ajout des onglets
+        // "rangés dans le +" n'ont pas tabOverflow dans leur storage persistant
+        // -> tableau vide, donc TOUS leurs onglets restent épinglés (le
+        // comportement d'avant), rien ne disparaît de la barre. On filtre
+        // aussi les ids inconnus/"reglages" au cas où un ancien onglet aurait
+        // été supprimé depuis, ou une valeur corrompue traînerait.
+        tabOverflow: Array.isArray((persisted as any)?.tabOverflow)
+          ? (persisted as any).tabOverflow.filter(
+              (id: TabId) => DEFAULT_TAB_ORDER.includes(id) && id !== "reglages"
+            )
+          : current.tabOverflow,
+        tabBarDismissedSignature:
+          (persisted as any)?.tabBarDismissedSignature ?? current.tabBarDismissedSignature,
       }),
     }
   )

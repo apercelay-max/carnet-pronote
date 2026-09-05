@@ -52,10 +52,17 @@ export default function ReglagesScreen() {
   const hiddenTabs = usePreferencesStore((s) => s.hiddenTabs);
   const tabLabels = usePreferencesStore((s) => s.tabLabels);
   const tabIcons = usePreferencesStore((s) => s.tabIcons);
+  const tabOverflow = usePreferencesStore((s) => s.tabOverflow);
   const reorderTabs = usePreferencesStore((s) => s.reorderTabs);
   const toggleTab = usePreferencesStore((s) => s.toggleTab);
   const setTabLabel = usePreferencesStore((s) => s.setTabLabel);
   const setTabIcon = usePreferencesStore((s) => s.setTabIcon);
+  const setTabPinned = usePreferencesStore((s) => s.setTabPinned);
+
+  // Le choix "épinglé dans la barre / rangé dans le +" n'a de sens visuel
+  // que pour le traitement liquid-glass (Forge) — les 8 autres styles
+  // affichent toujours tous les onglets visibles côte à côte, sans tiroir.
+  const hasOverflowTabBar = theme.structure.tabBar.treatment === "liquid-glass";
 
   const [iconPickerTab, setIconPickerTab] = useState<TabId | null>(null);
   const [materialsOpenFor, setMaterialsOpenFor] = useState<string | null>(null);
@@ -248,6 +255,9 @@ export default function ReglagesScreen() {
         <T variant="caption" tone="secondary" style={{ marginBottom: theme.spacing(3) }}>
           Renomme, change l'icône, réordonne ou masque les catégories. « Réglages » reste
           toujours accessible pour ne pas te bloquer dehors.
+          {hasOverflowTabBar
+            ? " Avec le style Forge, l'épingle garde l'onglet directement dans la barre — désépingle-le pour le ranger derrière le bouton +."
+            : ""}
         </T>
         <View>
           {tabOrder.map((id, i) => {
@@ -256,6 +266,10 @@ export default function ReglagesScreen() {
             const label = tabLabels[id] ?? TAB_DEFAULTS[id].label;
             const icon = tabIcons[id] ?? TAB_DEFAULTS[id].icon;
             const pickerOpen = iconPickerTab === id;
+            // "reglages" reste toujours épinglé (voir setTabPinned) : pas la
+            // peine d'afficher un contrôle qu'on ne peut pas actionner.
+            const pinned = !tabOverflow.includes(id);
+            const canTogglePin = hasOverflowTabBar && id !== "reglages" && !hidden;
 
             return (
               <View
@@ -303,6 +317,30 @@ export default function ReglagesScreen() {
                   <Pressable onPress={() => moveTab(id, 1)} hitSlop={8} style={{ padding: 4, marginRight: 8 }}>
                     <Icon name="chevronDown" size={16} color={theme.colors.textTertiary} />
                   </Pressable>
+                  {hasOverflowTabBar ? (
+                    <Pressable
+                      onPress={() => canTogglePin && setTabPinned(id, !pinned)}
+                      disabled={!canTogglePin}
+                      hitSlop={8}
+                      accessibilityLabel={pinned ? "Épinglé dans la barre" : "Rangé dans le +"}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        marginRight: 8,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: pinned && !locked ? theme.colors.accentGlass : "transparent",
+                        opacity: canTogglePin || locked ? 1 : 0.35,
+                      }}
+                    >
+                      <Icon
+                        name="pin"
+                        size={15}
+                        color={locked || pinned ? theme.colors.accent : theme.colors.textTertiary}
+                      />
+                    </Pressable>
+                  ) : null}
                   <Switch
                     value={!hidden}
                     disabled={locked}
