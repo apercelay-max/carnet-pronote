@@ -36,50 +36,59 @@ export function Button({ label, onPress, variant = "primary", disabled, loading,
   const borderColor = variant === "secondary" ? theme.colors.border : "transparent";
 
   return (
-    <AnimatedPressable
+    // Pressable À L'EXTÉRIEUR, Animated.View à l'intérieur — et surtout PAS
+    // Animated.createAnimatedComponent(Pressable) : le composant animé ne sait
+    // pas traiter un `style` donné sous forme de fonction (la signature
+    // ({ pressed }) => …, propre à Pressable). Il l'ignore, et le bouton perd
+    // TOUS ses styles : plus de fond, plus d'arrondi, plus de padding, juste
+    // le libellé en texte nu. C'est exactement ce qui s'est produit une fois.
+    <Pressable
       onPress={onPress}
       disabled={disabled || loading}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
-      style={({ pressed }: { pressed: boolean }) => [
-        press.style,
-        {
-          backgroundColor: useGradient ? "transparent" : bg,
-          overflow: "hidden",
-          borderRadius: theme.radius.md,
-          borderWidth: variant === "secondary" ? 1 : 0,
-          borderColor,
-          paddingVertical: theme.spacing(3.5),
-          paddingHorizontal: theme.spacing(5),
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-          opacity: disabled ? 0.5 : pressed && !press.active ? 0.85 : 1,
-        },
-        style,
-      ]}
     >
-      {useGradient ? (
-        <LinearGradient
-          colors={FORGE_GRADIENT}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }}
-        />
-      ) : null}
-      {loading ? (
-        <ActivityIndicator color={textColor} />
-      ) : (
-        <>
-          {icon ? <Icon name={icon} size={18} color={textColor} /> : null}
-          <T variant="body" weight="semibold" style={{ color: textColor }}>
-            {label}
-          </T>
-        </>
+      {({ pressed }) => (
+        <Animated.View
+          style={[
+            press.style,
+            {
+              backgroundColor: useGradient ? "transparent" : bg,
+              overflow: "hidden",
+              borderRadius: theme.radius.md,
+              borderWidth: variant === "secondary" ? 1 : 0,
+              borderColor,
+              paddingVertical: theme.spacing(3.5),
+              paddingHorizontal: theme.spacing(5),
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              opacity: disabled ? 0.5 : pressed && !press.active ? 0.85 : 1,
+            },
+            style,
+          ]}
+        >
+          {useGradient ? (
+            <LinearGradient
+              colors={FORGE_GRADIENT}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }}
+            />
+          ) : null}
+          {loading ? (
+            <ActivityIndicator color={textColor} />
+          ) : (
+            <>
+              {icon ? <Icon name={icon} size={18} color={textColor} /> : null}
+              <T variant="body" weight="semibold" style={{ color: textColor }}>
+                {label}
+              </T>
+            </>
+          )}
+        </Animated.View>
       )}
-    </AnimatedPressable>
+    </Pressable>
   );
 }
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
