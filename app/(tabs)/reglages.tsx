@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { View, Switch, Pressable, TextInput, Alert } from "react-native";
+import { useRouter } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSessionStore } from "../../src/store/useSessionStore";
 import { useDataStore } from "../../src/store/useDataStore";
@@ -21,9 +22,13 @@ import { Icon } from "../../src/components/ui/Icon";
 import { Button } from "../../src/components/ui/Button";
 import { SegmentedControl } from "../../src/components/ui/SegmentedControl";
 import { SwatchPicker } from "../../src/components/ui/SwatchPicker";
+import { MotionSettings } from "../../src/components/ui/MotionSettings";
+import { useAccountStore } from "../../src/store/useAccountStore";
 
 export default function ReglagesScreen() {
   const theme = useTheme();
+  const router = useRouter();
+  const compteEmail = useAccountStore((s) => s.email);
   const displayName = useSessionStore((s) => s.displayName);
   const isDemo = useSessionStore((s) => s.isDemo);
   const logout = useSessionStore((s) => s.logout);
@@ -139,8 +144,33 @@ export default function ReglagesScreen() {
             </T>
           </View>
         </View>
+        {/* Le compte Carnet est SÉPARÉ du compte Pronote : il ne sert qu'à
+            retrouver ses réglages et ses fiches sur un autre appareil. Les
+            deux sont côte à côte ici pour que la différence saute aux yeux. */}
+        <Pressable
+          onPress={() => router.push("/compte")}
+          style={{
+            marginTop: theme.spacing(4),
+            flexDirection: "row",
+            alignItems: "center",
+            gap: theme.spacing(3),
+            paddingTop: theme.spacing(4),
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.borderSoft,
+          }}
+        >
+          <Icon name="device" size={18} color={theme.colors.accent} />
+          <View style={{ flex: 1 }}>
+            <T variant="body">Compte Carnet</T>
+            <T variant="caption" tone="tertiary" style={{ marginTop: 2 }}>
+              {compteEmail ?? "Retrouve tes réglages et tes fiches sur un autre appareil"}
+            </T>
+          </View>
+          <Icon name="chevronRight" size={16} color={theme.colors.textTertiary} />
+        </Pressable>
+
         <View style={{ marginTop: theme.spacing(4) }}>
-          <Button label="Se déconnecter" variant="secondary" onPress={confirmLogout} icon="close" />
+          <Button label="Se déconnecter de Pronote" variant="secondary" onPress={confirmLogout} icon="close" />
         </View>
       </Card>
 
@@ -249,6 +279,9 @@ export default function ReglagesScreen() {
           />
         </View>
       </Card>
+
+      <SectionTitle icon="sparkle" title="Animations" />
+      <MotionSettings />
 
       <SectionTitle icon="grip" title="Barre du bas" />
       <Card style={{ marginBottom: theme.spacing(6) }}>

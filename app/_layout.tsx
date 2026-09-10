@@ -10,6 +10,7 @@ import { useSessionStore } from "../src/store/useSessionStore";
 import { useMotionStore } from "../src/store/useMotionStore";
 import { stackAnimationFor } from "../src/lib/motion";
 import { CelebrationLayer } from "../src/components/ui/Celebration";
+import { useAccountStore } from "../src/store/useAccountStore";
 
 export default function RootLayout() {
   return (
@@ -34,9 +35,14 @@ function RootNavigator() {
   const screensOn = useMotionStore((s) => s.screens);
   const stackAnimation = (screensOn ? stackAnimationFor(motionId) : "none") as any;
 
+  // Session du compte Carnet restaurée au démarrage, en parallèle de celle de
+  // Pronote : les deux sont indépendantes, l'une ne doit jamais bloquer l'autre.
+  const bootstrapCompte = useAccountStore((s) => s.bootstrap);
+
   useEffect(() => {
     bootstrap();
-  }, [bootstrap]);
+    bootstrapCompte();
+  }, [bootstrap, bootstrapCompte]);
 
   if (status === "starting") {
     return (
@@ -63,6 +69,7 @@ function RootNavigator() {
           <Stack.Screen name="messagerie" />
           <Stack.Screen name="actualites" />
           <Stack.Screen name="assistant" />
+          <Stack.Screen name="compte" />
         </Stack.Protected>
         <Stack.Protected guard={status !== "authenticated"}>
           <Stack.Screen name="login" />

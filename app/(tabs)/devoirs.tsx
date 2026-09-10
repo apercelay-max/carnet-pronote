@@ -7,6 +7,7 @@ import { usePreferencesStore } from "../../src/store/usePreferencesStore";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { RichText } from "../../src/components/ui/RichText";
+import { celebrate } from "../../src/components/ui/Celebration";
 import { Card } from "../../src/components/ui/Card";
 import { Icon } from "../../src/components/ui/Icon";
 import { SegmentedControl } from "../../src/components/ui/SegmentedControl";
@@ -52,6 +53,16 @@ export default function DevoirsScreen() {
   const sync = useCallback(() => {
     if (session) refreshAll(session);
   }, [session, refreshAll]);
+
+  // Confettis seulement quand on COCHE : décocher un devoir n'a rien d'une
+  // victoire, et une volée de confettis à ce moment-là serait juste pénible.
+  const toggle = useCallback(
+    (id: string, done: boolean) => {
+      toggleAssignmentDone(session, id, done);
+      if (done) celebrate();
+    },
+    [session, toggleAssignmentDone]
+  );
 
   useEffect(() => {
     if (session && assignments.length === 0) sync();
@@ -164,7 +175,7 @@ export default function DevoirsScreen() {
               key={a.id}
               assignment={a}
               color={colorForSubject(a.subject.name, subjectColors)}
-              onToggle={() => toggleAssignmentDone(session, a.id, !a.done)}
+              onToggle={() => toggle(a.id, !a.done)}
               showDate
             />
           ))}
@@ -202,7 +213,7 @@ export default function DevoirsScreen() {
                       key={a.id}
                       assignment={a}
                       color={colorForSubject(a.subject.name, subjectColors)}
-                      onToggle={() => toggleAssignmentDone(session, a.id, !a.done)}
+                      onToggle={() => toggle(a.id, !a.done)}
                     />
                   ))}
                 </View>
