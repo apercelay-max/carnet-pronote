@@ -6,6 +6,7 @@ import { useDataStore } from "../../src/store/useDataStore";
 import { usePreferencesStore } from "../../src/store/usePreferencesStore";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
+import { RichText } from "../../src/components/ui/RichText";
 import { Card } from "../../src/components/ui/Card";
 import { Icon } from "../../src/components/ui/Icon";
 import { SegmentedControl } from "../../src/components/ui/SegmentedControl";
@@ -259,7 +260,9 @@ function AssignmentRow({
             </T>
           </View>
 
-          <T
+          {/* Pronote renvoie souvent la description en HTML : passer par
+              RichText (et pas <T> directement) sinon les balises s'affichent. */}
+          <RichText
             variant="body"
             style={
               assignment.done
@@ -268,7 +271,7 @@ function AssignmentRow({
             }
           >
             {assignment.description}
-          </T>
+          </RichText>
 
           {/* Les métadonnées passent en puces teintées plutôt qu'en ligne de
               texte gris : c'est la présentation de PPL, et ça rend la

@@ -56,23 +56,11 @@ const MARQUEURS = [
   "conclusion",
 ];
 
-/** Enlève le HTML que Pronote renvoie parfois, en gardant les retours ligne. */
-export function stripHtml(input: string): string {
-  return input
-    .replace(/<\s*br\s*\/?>/gi, "\n")
-    .replace(/<\s*\/\s*(p|div|li|h[1-6]|tr)\s*>/gi, "\n")
-    .replace(/<\s*li[^>]*>/gi, "\n• ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&(#39|rsquo|apos);/gi, "'")
-    .replace(/&(quot|ldquo|rdquo);/gi, '"')
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
+// stripHtml vit maintenant dans lib/html.ts (partagé avec l'affichage des
+// devoirs, qui souffrait du même HTML brut). Ré-exporté ici pour ne pas
+// casser les imports existants.
+import { stripHtml } from "./html";
+export { stripHtml };
 
 function normalise(mot: string): string {
   return mot

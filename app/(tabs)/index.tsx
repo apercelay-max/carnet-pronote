@@ -7,6 +7,7 @@ import { useDataStore } from "../../src/store/useDataStore";
 import { usePreferencesStore, WidgetId } from "../../src/store/usePreferencesStore";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
+import { plainText } from "../../src/components/ui/RichText";
 import { Card } from "../../src/components/ui/Card";
 import { Icon } from "../../src/components/ui/Icon";
 import { ProgressRing } from "../../src/components/ui/ProgressRing";
@@ -223,7 +224,7 @@ function Widget({ id, grades, notebookData, timetable, assignments, evaluations,
                     {a.subject.name}
                   </T>
                   <T variant="caption" tone="secondary" numberOfLines={1}>
-                    {a.description}
+                    {plainText(a.description)}
                   </T>
                 </View>
               </View>

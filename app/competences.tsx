@@ -7,6 +7,7 @@ import { useDataStore } from "../src/store/useDataStore";
 import { usePreferencesStore } from "../src/store/usePreferencesStore";
 import { Screen } from "../src/components/ui/Screen";
 import { T } from "../src/components/ui/Text";
+import { RichText } from "../src/components/ui/RichText";
 import { Card } from "../src/components/ui/Card";
 import { Icon } from "../src/components/ui/Icon";
 import { Eyebrow, Chip, StatTile, StatRow, BarreMatiere } from "../src/components/ui/Stats";
@@ -84,9 +85,9 @@ export default function CompetencesScreen() {
                       {e.name}
                     </T>
                     {e.description ? (
-                      <T variant="caption" tone="secondary" style={{ marginTop: 4 }}>
+                      <RichText variant="caption" tone="secondary" style={{ marginTop: 4 }}>
                         {e.description}
-                      </T>
+                      </RichText>
                     ) : null}
                     <T variant="caption" tone="tertiary" style={{ marginTop: 2 }}>
                       {e.teacher}

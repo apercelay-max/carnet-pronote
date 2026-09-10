@@ -6,6 +6,7 @@ import { useDataStore } from "../../src/store/useDataStore";
 import { usePreferencesStore } from "../../src/store/usePreferencesStore";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
+import { RichText, plainText } from "../../src/components/ui/RichText";
 import { Card } from "../../src/components/ui/Card";
 import { Icon } from "../../src/components/ui/Icon";
 import { Eyebrow, Chip, StatTile, StatRow } from "../../src/components/ui/Stats";
@@ -321,13 +322,13 @@ export default function TimetableScreen() {
                           </View>
                           {content.title ? (
                             <T variant="body" weight="medium">
-                              {content.title}
+                              {plainText(content.title)}
                             </T>
                           ) : null}
                           {content.description ? (
-                            <T variant="caption" tone="secondary" style={{ marginTop: 2 }}>
+                            <RichText variant="caption" tone="secondary" style={{ marginTop: 2 }}>
                               {content.description}
-                            </T>
+                            </RichText>
                           ) : null}
                         </View>
                       ))}
