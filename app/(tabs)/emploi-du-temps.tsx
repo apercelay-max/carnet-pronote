@@ -1,9 +1,12 @@
 import React, { useEffect, useCallback, useMemo, useState } from "react";
 import { View, ScrollView, Pressable } from "react-native";
+import { useRouter } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSessionStore } from "../../src/store/useSessionStore";
 import { useDataStore } from "../../src/store/useDataStore";
 import { usePreferencesStore } from "../../src/store/usePreferencesStore";
+import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
+import { creneauForDay } from "../../src/lib/persoItems";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { RichText, plainText } from "../../src/components/ui/RichText";
@@ -56,10 +59,12 @@ function isSameDay(a: Date, b: Date) {
 
 export default function TimetableScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const session = useSessionStore((s) => s.session);
   const isDemo = useSessionStore((s) => s.isDemo);
   const { timetable, resources, loading, refreshAll } = useDataStore();
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
+  const creneauxPerso = useLocalItemsStore((s) => s.creneauxPerso);
 
   const [weekOffset, setWeekOffset] = useState(0);
   const days = useMemo(() => weekDates(weekOffset), [weekOffset]);
@@ -99,10 +104,17 @@ export default function TimetableScreen() {
 
   const classesForDay = useMemo(() => {
     const target = days[selected];
-    return (timetable?.classes ?? [])
-      .filter((c: any) => isSameDay(c.startDate, target))
-      .sort((a: any, b: any) => a.startDate.getTime() - b.startDate.getTime());
-  }, [timetable, days, selected]);
+    const pronote = (timetable?.classes ?? []).filter((c: any) => isSameDay(c.startDate, target));
+    // Créneaux perso (foot, musique…) : même jour, insérés à leur heure. Ils
+    // portent `perso: true` et `is: "activity"`, donc ne comptent pas dans le
+    // « temps en classe » (resumeJour ne regarde que `is === "lesson"`).
+    const perso = creneauxPerso
+      .map((c) => creneauForDay(c, target))
+      .filter((c): c is NonNullable<typeof c> => c != null);
+    return [...pronote, ...perso].sort(
+      (a: any, b: any) => a.startDate.getTime() - b.startDate.getTime()
+    );
+  }, [timetable, days, selected, creneauxPerso]);
 
   // Résumé du jour affiché : uniquement des cours réels, annulés exclus du
   // temps passé en classe (sinon on gonflerait la journée avec des heures
@@ -135,15 +147,33 @@ export default function TimetableScreen() {
             marginBottom: theme.spacing(4),
           }}
         >
-          <View>
+          <View style={{ flex: 1 }}>
             <Eyebrow color={theme.colors.accent}>
               {weekOffset === 0
                 ? "Cette semaine"
                 : `Du ${format(days[0], "d MMM", { locale: fr })} au ${format(days[6], "d MMM", { locale: fr })}`}
             </Eyebrow>
-            <T variant="hero" style={{ marginTop: 2 }}>
-              Emploi du temps
-            </T>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing(2) }}>
+              <T variant="hero" style={{ marginTop: 2 }}>
+                Emploi du temps
+              </T>
+              <Pressable
+                onPress={() => router.push("/perso/creneau")}
+                hitSlop={8}
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 14,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: theme.colors.surface,
+                  borderWidth: 1,
+                  borderColor: theme.colors.borderSoft,
+                }}
+              >
+                <Icon name="plus" size={15} color={theme.colors.textPrimary} />
+              </Pressable>
+            </View>
           </View>
           {/* Sans ces flèches, l'écran ne montrait QUE la semaine en cours :
               les 3 semaines déjà chargées (voir fetchTimetableRange) restaient
@@ -254,9 +284,12 @@ export default function TimetableScreen() {
         ) : (
           <View style={{ gap: theme.spacing(3) }}>
             {classesForDay.map((c: any) => {
+              const perso = c.perso === true;
               const isLesson = c.is === "lesson";
               const name = isLesson ? c.subject?.name ?? "Cours" : c.is === "activity" ? c.title : "Retenue";
-              const color = colorForSubject(name, subjectColors);
+              const color = perso
+                ? c.couleur ?? colorForSubject((c.matiere || name) as string, subjectColors)
+                : colorForSubject(name, subjectColors);
               const canceled = isLesson && c.canceled;
               const resource = isLesson ? resourceForLesson(c) : undefined;
               const hasContent = !!resource?.contents?.length;
@@ -266,7 +299,13 @@ export default function TimetableScreen() {
                   key={c.id}
                   padded
                   style={{ opacity: canceled ? 0.55 : 1 }}
-                  onPress={hasContent ? () => setExpandedId(expanded ? null : c.id) : undefined}
+                  onPress={
+                    perso
+                      ? () => router.push(`/perso/creneau?id=${c.id}`)
+                      : hasContent
+                        ? () => setExpandedId(expanded ? null : c.id)
+                        : undefined
+                  }
                 >
                   <View style={{ flexDirection: "row" }}>
                     <View style={{ width: 58 }}>
@@ -283,6 +322,7 @@ export default function TimetableScreen() {
                         <T variant="body" weight="semibold" numberOfLines={1} style={{ flexShrink: 1 }}>
                           {name}
                         </T>
+                        {perso ? <Chip color={theme.colors.accent} label="Perso" /> : null}
                         {canceled ? <Chip color={theme.colors.danger} label="Annulé" /> : null}
                         {isLesson && c.test && !canceled ? (
                           <Chip color={theme.colors.warning} label="Évaluation" />
@@ -296,7 +336,11 @@ export default function TimetableScreen() {
                         {hasContent ? <MetaTag icon="book" text="Contenu du cours" /> : null}
                       </View>
                     </View>
-                    {hasContent ? (
+                    {perso ? (
+                      <View style={{ justifyContent: "center" }}>
+                        <Icon name="chevronRight" size={14} color={theme.colors.textTertiary} />
+                      </View>
+                    ) : hasContent ? (
                       <View style={{ justifyContent: "center" }}>
                         <Icon name={expanded ? "chevronUp" : "chevronDown"} size={14} color={theme.colors.textTertiary} />
                       </View>

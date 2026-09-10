@@ -1,9 +1,12 @@
 import React, { useEffect, useCallback, useMemo, useState } from "react";
 import { View, Pressable } from "react-native";
+import { useRouter } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSessionStore } from "../../src/store/useSessionStore";
 import { useDataStore } from "../../src/store/useDataStore";
 import { usePreferencesStore } from "../../src/store/usePreferencesStore";
+import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
+import { devoirManuelToAssignment } from "../../src/lib/persoItems";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { RichText } from "../../src/components/ui/RichText";
@@ -44,11 +47,23 @@ type SortMode = "date" | "importance";
 
 export default function DevoirsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const session = useSessionStore((s) => s.session);
   const isDemo = useSessionStore((s) => s.isDemo);
-  const { assignments, loading, refreshAll, toggleAssignmentDone } = useDataStore();
+  const { assignments: assignmentsPronote, loading, refreshAll, toggleAssignmentDone } = useDataStore();
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
+  const devoirsManuels = useLocalItemsStore((s) => s.devoirsManuels);
+  const toggleDevoirManuelFait = useLocalItemsStore((s) => s.toggleDevoirManuelFait);
   const [sortMode, setSortMode] = useState<SortMode>("date");
+
+  // Les devoirs ajoutés à la main sont fusionnés avec ceux de Pronote et
+  // traités exactement pareil (tri, stats, regroupement par date). Le drapeau
+  // `perso` sert juste à router l'action « cocher » vers le bon store et à
+  // afficher une puce.
+  const assignments = useMemo(
+    () => [...assignmentsPronote, ...devoirsManuels.map(devoirManuelToAssignment)] as Assignment[],
+    [assignmentsPronote, devoirsManuels]
+  );
 
   const sync = useCallback(() => {
     if (session) refreshAll(session);
@@ -57,15 +72,16 @@ export default function DevoirsScreen() {
   // Confettis seulement quand on COCHE : décocher un devoir n'a rien d'une
   // victoire, et une volée de confettis à ce moment-là serait juste pénible.
   const toggle = useCallback(
-    (id: string, done: boolean) => {
-      toggleAssignmentDone(session, id, done);
+    (a: Assignment, done: boolean) => {
+      if ((a as any).perso) toggleDevoirManuelFait(a.id);
+      else toggleAssignmentDone(session, a.id, done);
       if (done) celebrate();
     },
-    [session, toggleAssignmentDone]
+    [session, toggleAssignmentDone, toggleDevoirManuelFait]
   );
 
   useEffect(() => {
-    if (session && assignments.length === 0) sync();
+    if (session && assignmentsPronote.length === 0) sync();
   }, [session]);
 
   const groups = useMemo(() => {
@@ -107,11 +123,40 @@ export default function DevoirsScreen() {
 
   return (
     <Screen onRefresh={isDemo ? undefined : sync} refreshing={loading}>
-      <View style={{ marginBottom: theme.spacing(5) }}>
-        <Eyebrow color={theme.colors.accent}>Mon travail</Eyebrow>
-        <T variant="hero" style={{ marginTop: 2 }}>
-          Devoirs
-        </T>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          marginBottom: theme.spacing(5),
+        }}
+      >
+        <View>
+          <Eyebrow color={theme.colors.accent}>Mon travail</Eyebrow>
+          <T variant="hero" style={{ marginTop: 2 }}>
+            Devoirs
+          </T>
+        </View>
+        <Pressable
+          onPress={() => router.push("/perso/devoir")}
+          hitSlop={8}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
+            paddingHorizontal: theme.spacing(3),
+            height: 34,
+            borderRadius: theme.radius.md,
+            backgroundColor: theme.colors.surface,
+            borderWidth: 1,
+            borderColor: theme.colors.borderSoft,
+          }}
+        >
+          <Icon name="plus" size={15} color={theme.colors.textPrimary} />
+          <T variant="caption" weight="semibold">
+            Ajouter
+          </T>
+        </Pressable>
       </View>
 
       {assignments.length > 0 && (
@@ -175,7 +220,8 @@ export default function DevoirsScreen() {
               key={a.id}
               assignment={a}
               color={colorForSubject(a.subject.name, subjectColors)}
-              onToggle={() => toggle(a.id, !a.done)}
+              onToggle={() => toggle(a, !a.done)}
+              onEdit={(a as any).perso ? () => router.push(`/perso/devoir?id=${a.id}`) : undefined}
               showDate
             />
           ))}
@@ -213,7 +259,8 @@ export default function DevoirsScreen() {
                       key={a.id}
                       assignment={a}
                       color={colorForSubject(a.subject.name, subjectColors)}
-                      onToggle={() => toggle(a.id, !a.done)}
+                      onToggle={() => toggle(a, !a.done)}
+              onEdit={(a as any).perso ? () => router.push(`/perso/devoir?id=${a.id}`) : undefined}
                     />
                   ))}
                 </View>
@@ -237,14 +284,17 @@ function AssignmentRow({
   assignment,
   color,
   onToggle,
+  onEdit,
   showDate = false,
 }: {
   assignment: Assignment;
   color: string;
   onToggle: () => void;
+  onEdit?: () => void;
   showDate?: boolean;
 }) {
   const theme = useTheme();
+  const perso = (assignment as any).perso === true;
   const niveau = assignment.difficulty as unknown as number;
   const difficulty = difficultyLabel(niveau);
   const difficultyColor =
@@ -253,7 +303,7 @@ function AssignmentRow({
   const urgent = !assignment.done && jours <= 1;
 
   return (
-    <Card padded style={{ opacity: assignment.done ? 0.55 : 1 }}>
+    <Card padded style={{ opacity: assignment.done ? 0.55 : 1 }} onPress={onEdit}>
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: theme.spacing(3) }}>
         <Pressable onPress={onToggle} hitSlop={8}>
           <Icon
@@ -269,6 +319,7 @@ function AssignmentRow({
             <T variant="caption" weight="semibold" style={{ color }} numberOfLines={1}>
               {assignment.subject.name}
             </T>
+            {perso ? <Chip color={theme.colors.accent} label="Perso" /> : null}
           </View>
 
           {/* Pronote renvoie souvent la description en HTML : passer par

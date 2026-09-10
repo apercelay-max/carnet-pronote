@@ -9,6 +9,7 @@ export type ThemeMode = "system" | "dark" | "light";
 export type FontScaleKey = "sm" | "md" | "lg";
 
 export type WidgetId =
+  | "penseBete"
   | "prochainCours"
   | "moyenneGenerale"
   | "devoirsAVenir"
@@ -21,6 +22,7 @@ export type WidgetId =
   | "actualites";
 
 export const WIDGET_LABELS: Record<WidgetId, string> = {
+  penseBete: "Pense-bête",
   prochainCours: "Prochain cours",
   moyenneGenerale: "Moyenne générale",
   devoirsAVenir: "Devoirs à venir",
@@ -34,6 +36,7 @@ export const WIDGET_LABELS: Record<WidgetId, string> = {
 };
 
 const DEFAULT_WIDGET_ORDER: WidgetId[] = [
+  "penseBete",
   "prochainCours",
   "moyenneGenerale",
   "sacDeCours",

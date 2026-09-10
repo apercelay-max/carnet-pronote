@@ -5,6 +5,8 @@ import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSessionStore } from "../../src/store/useSessionStore";
 import { useDataStore } from "../../src/store/useDataStore";
 import { usePreferencesStore, WidgetId } from "../../src/store/usePreferencesStore";
+import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
+import { devoirManuelToAssignment } from "../../src/lib/persoItems";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { plainText } from "../../src/components/ui/RichText";
@@ -37,6 +39,15 @@ export default function DashboardScreen() {
   const widgetOrder = usePreferencesStore((s) => s.widgetOrder);
   const hiddenWidgets = usePreferencesStore((s) => s.hiddenWidgets);
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
+  const penseBetes = useLocalItemsStore((s) => s.penseBetes);
+  const devoirsManuels = useLocalItemsStore((s) => s.devoirsManuels);
+
+  // Les devoirs ajoutés à la main apparaissent dans le widget « Devoirs à
+  // venir » au même titre que ceux de Pronote.
+  const assignmentsAvecPerso = useMemo(
+    () => [...assignments, ...devoirsManuels.map(devoirManuelToAssignment)],
+    [assignments, devoirsManuels]
+  );
 
   const sync = useCallback(() => {
     if (session) refreshAll(session);
@@ -83,11 +94,12 @@ export default function DashboardScreen() {
             grades={grades}
             notebookData={notebookData}
             timetable={timetable}
-            assignments={assignments}
+            assignments={assignmentsAvecPerso}
             evaluations={evaluations}
             discussions={discussions}
             newsData={newsData}
             subjectColors={subjectColors}
+            penseBetes={penseBetes}
           />
         ))}
       </View>
@@ -103,8 +115,12 @@ function greeting() {
   return "Bonsoir";
 }
 
-function Widget({ id, grades, notebookData, timetable, assignments, evaluations, discussions, newsData, subjectColors }: any) {
+function Widget({ id, grades, notebookData, timetable, assignments, evaluations, discussions, newsData, subjectColors, penseBetes }: any) {
   const theme = useTheme();
+
+  if (id === "penseBete") {
+    return <PenseBeteWidget penseBetes={penseBetes ?? []} />;
+  }
 
   if (id === "moyenneGenerale") {
     // Meme presentation que l'ecran Notes : le chiffre porte la carte, l'ecart
@@ -343,6 +359,58 @@ function Widget({ id, grades, notebookData, timetable, assignments, evaluations,
   }
 
   return null;
+}
+
+function PenseBeteWidget({ penseBetes }: { penseBetes: { id: string; texte: string; epingle: boolean; updatedAt: number }[] }) {
+  const theme = useTheme();
+  const router = useRouter();
+
+  // Priorité aux notes épinglées ; à défaut, les plus récentes. On en montre
+  // 3 au maximum sur l'accueil — le reste est sur l'écran dédié.
+  const tries = [...penseBetes].sort((a, b) => {
+    if (a.epingle !== b.epingle) return a.epingle ? -1 : 1;
+    return b.updatedAt - a.updatedAt;
+  });
+  const apercu = tries.slice(0, 3);
+  const reste = tries.length - apercu.length;
+
+  return (
+    <Card onPress={() => router.push("/pense-bete")}>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: theme.spacing(3) }}>
+        <T variant="subtitle" style={{ flex: 1 }}>
+          Pense-bête
+        </T>
+        <Icon name="chevronRight" size={16} color={theme.colors.textTertiary} />
+      </View>
+      {apercu.length === 0 ? (
+        <T variant="body" tone="secondary">
+          Rien de noté. Touche pour ajouter un rappel.
+        </T>
+      ) : (
+        <View style={{ gap: theme.spacing(3) }}>
+          {apercu.map((p) => (
+            <View key={p.id} style={{ flexDirection: "row", gap: theme.spacing(3), alignItems: "flex-start" }}>
+              <View style={{ marginTop: 5 }}>
+                <Icon
+                  name={p.epingle ? "pin" : "circle"}
+                  size={p.epingle ? 13 : 8}
+                  color={p.epingle ? theme.colors.accent : theme.colors.textTertiary}
+                />
+              </View>
+              <T variant="body" numberOfLines={2} style={{ flex: 1, lineHeight: 21 }}>
+                {p.texte}
+              </T>
+            </View>
+          ))}
+          {reste > 0 ? (
+            <T variant="caption" tone="tertiary">
+              +{reste} autre{reste > 1 ? "s" : ""}
+            </T>
+          ) : null}
+        </View>
+      )}
+    </Card>
+  );
 }
 
 function SacDeCoursWidget({ timetable, subjectColors }: any) {

@@ -19,6 +19,7 @@ import {
   TAB_HINTS,
   TabId,
 } from "../../src/store/usePreferencesStore";
+import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
 
 // Largeur minimale confortable pour un onglet de la barre liquid-glass
 // (icône 22px + libellé 9px sur une ligne) — sous ce seuil les libellés se
@@ -60,6 +61,16 @@ export default function TabsLayout() {
   const pathname = usePathname();
   const { tabBar } = theme.structure;
   const c = theme.colors;
+
+  // Au lancement de l'app (et quand elle revient au premier plan via un
+  // remontage), on récupère les éléments perso depuis Supabase si un code de
+  // synchro est configuré. Les modifications locales, elles, sont repoussées
+  // automatiquement par le store.
+  const syncCode = useLocalItemsStore((s) => s.syncCode);
+  const pullSync = useLocalItemsStore((s) => s.pullSync);
+  useEffect(() => {
+    if (syncCode) void pullSync();
+  }, [syncCode, pullSync]);
 
   const tabOrder = usePreferencesStore((s) => s.tabOrder);
   const hiddenTabs = usePreferencesStore((s) => s.hiddenTabs);

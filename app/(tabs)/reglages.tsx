@@ -15,6 +15,7 @@ import {
 import { ACCENTS, ACCENT_ORDER, SUBJECT_PALETTE, colorForSubject } from "../../src/theme/palette";
 import { STYLE_ORDER, STYLE_META } from "../../src/theme/styles";
 import { allKnownSubjects } from "../../src/lib/subjects";
+import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { Card } from "../../src/components/ui/Card";
@@ -72,6 +73,27 @@ export default function ReglagesScreen() {
   const [iconPickerTab, setIconPickerTab] = useState<TabId | null>(null);
   const [materialsOpenFor, setMaterialsOpenFor] = useState<string | null>(null);
   const [materialDraft, setMaterialDraft] = useState("");
+
+  const syncCode = useLocalItemsStore((s) => s.syncCode);
+  const syncMessage = useLocalItemsStore((s) => s.syncMessage);
+  const nbPerso = useLocalItemsStore(
+    (s) => s.penseBetes.length + s.devoirsManuels.length + s.creneauxPerso.length
+  );
+  const creerSyncCode = useLocalItemsStore((s) => s.creerSyncCode);
+  const lierSyncCode = useLocalItemsStore((s) => s.lierSyncCode);
+  const delierSync = useLocalItemsStore((s) => s.delierSync);
+  const [codeDraft, setCodeDraft] = useState("");
+
+  function confirmerDelier() {
+    Alert.alert(
+      "Délier cet appareil ?",
+      "Il garde tes pense-bêtes, devoirs et créneaux perso actuels, mais ne se synchronisera plus avec tes autres appareils.",
+      [
+        { text: "Annuler", style: "cancel" },
+        { text: "Délier", style: "destructive", onPress: () => delierSync() },
+      ]
+    );
+  }
 
   const subjects = useMemo(
     () => (grades?.subjectsAverages ?? []).map((s) => s.subject.name),
@@ -465,6 +487,97 @@ export default function ReglagesScreen() {
             );
           })}
         </View>
+      </Card>
+
+      <SectionTitle icon="refresh" title="Synchro entre appareils" />
+      <Card style={{ marginBottom: theme.spacing(6) }}>
+        <T variant="caption" tone="secondary" style={{ marginBottom: theme.spacing(3), lineHeight: 18 }}>
+          Retrouve tes pense-bêtes, devoirs et créneaux perso sur tes autres appareils. Un code
+          suffit — aucun compte. Ça ne concerne que ce que tu ajoutes à la main : les données
+          Pronote viennent toujours de ta connexion.
+        </T>
+
+        {syncCode ? (
+          <View style={{ gap: theme.spacing(3) }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing(3) }}>
+              <View
+                style={{
+                  paddingHorizontal: theme.spacing(4),
+                  paddingVertical: theme.spacing(2),
+                  borderRadius: theme.radius.md,
+                  backgroundColor: theme.colors.surfaceElevated,
+                  borderWidth: 1,
+                  borderColor: theme.colors.borderSoft,
+                }}
+              >
+                <T variant="subtitle" weight="semibold" style={{ letterSpacing: 3 }}>
+                  {syncCode}
+                </T>
+              </View>
+              <T variant="caption" tone="tertiary" style={{ flex: 1 }}>
+                Saisis ce code sur ton autre appareil, dans ce même écran.
+              </T>
+            </View>
+            <T variant="caption" tone={syncMessage.startsWith("Échec") ? "danger" : "tertiary"}>
+              {syncMessage || `${nbPerso} élément${nbPerso > 1 ? "s" : ""} synchronisé${nbPerso > 1 ? "s" : ""}`}
+            </T>
+            <Pressable onPress={confirmerDelier}>
+              <T variant="caption" tone="danger">
+                Délier cet appareil
+              </T>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={{ gap: theme.spacing(3) }}>
+            <Button label="Créer un code de synchro" icon="plus" onPress={creerSyncCode} />
+            <T variant="caption" tone="tertiary">
+              Ou entre un code déjà créé sur un autre appareil :
+            </T>
+            <View style={{ flexDirection: "row", gap: theme.spacing(2) }}>
+              <TextInput
+                value={codeDraft}
+                onChangeText={(t) => setCodeDraft(t.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
+                placeholder="ABC123"
+                autoCapitalize="characters"
+                placeholderTextColor={theme.colors.textTertiary}
+                style={{
+                  flex: 1,
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: theme.radius.md,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border,
+                  paddingHorizontal: theme.spacing(3),
+                  paddingVertical: theme.spacing(3),
+                  color: theme.colors.textPrimary,
+                  fontSize: theme.type.body,
+                  letterSpacing: 3,
+                }}
+              />
+              <Pressable
+                onPress={() => {
+                  void lierSyncCode(codeDraft);
+                  setCodeDraft("");
+                }}
+                disabled={codeDraft.length < 4}
+                style={{
+                  paddingHorizontal: theme.spacing(4),
+                  justifyContent: "center",
+                  borderRadius: theme.radius.md,
+                  backgroundColor: codeDraft.length < 4 ? theme.colors.surfaceElevated : theme.colors.accent,
+                }}
+              >
+                <T variant="caption" weight="semibold" style={{ color: codeDraft.length < 4 ? theme.colors.textTertiary : "#0B0D12" }}>
+                  Lier
+                </T>
+              </Pressable>
+            </View>
+            {syncMessage ? (
+              <T variant="caption" tone={syncMessage.startsWith("Échec") ? "danger" : "tertiary"}>
+                {syncMessage}
+              </T>
+            ) : null}
+          </View>
+        )}
       </Card>
 
       <SectionTitle icon="backpack" title="Sac de cours" />
