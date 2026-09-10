@@ -39,7 +39,7 @@ module.exports = async function handler(req, res) {
     // Le modèle vient de l'app mais n'est pas recopié tel quel dans l'URL :
     // sans cette liste, ce endpoint laisserait appeler n'importe quel chemin de
     // l'API Google avec la clé du serveur.
-    const ALLOWED = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"];
+    const ALLOWED = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.5-pro"];
     const chosen = ALLOWED.includes(model) ? model : ALLOWED[0];
 
     const upstream = await fetch(`${ENDPOINT}/${chosen}:generateContent`, {

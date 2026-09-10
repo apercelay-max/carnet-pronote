@@ -13,7 +13,11 @@
 
 import { Platform } from "react-native";
 
-export const GEMINI_MODEL = "gemini-2.5-flash";
+// Google retire les anciens modèles pour les NOUVELLES clés API : une clé
+// créée aujourd'hui reçoit « no longer available to new users » sur
+// gemini-2.5-flash. Ce nom est donc à re-vérifier si l'assistant se remet à
+// répondre une erreur de modèle.
+export const GEMINI_MODEL = "gemini-3.6-flash";
 
 const DIRECT_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
