@@ -56,6 +56,37 @@ export default function ExtensionsScreen() {
         </View>
       )}
 
+      {/* Assistant Gemini : mis en avant au-dessus du reste parce que c'est le
+          seul module qui sait répondre sur N'IMPORTE QUEL cours, là où les
+          fiches locales se limitent au texte qu'on leur donne. */}
+      <Pressable onPress={() => router.push("/assistant")} style={{ marginBottom: theme.spacing(3) }}>
+        <Card padded tint={theme.colors.accent}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 11,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: hexToRgba(theme.colors.accent, theme.isDark ? 0.14 : 0.1),
+              }}
+            >
+              <Icon name="chat" size={19} color={theme.colors.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <T variant="body" weight="semibold">
+                Assistant Gemini
+              </T>
+              <T variant="caption" tone="tertiary" style={{ marginTop: 2 }}>
+                Fiches, questions d'entraînement et conseils, à partir de tes vrais cours et notes
+              </T>
+            </View>
+            <Icon name="chevronRight" size={16} color={theme.colors.textTertiary} />
+          </View>
+        </Card>
+      </Pressable>
+
       {/* Porte d'entrée vers l'espace révision dédié (barre du bas, fiches,
           flashcards, contrôles, réglages propres à la section) — les
           interrupteurs ci-dessous restent le réglage fin, ce CTA est le

@@ -62,6 +62,7 @@ function RootNavigator() {
           <Stack.Screen name="competences" />
           <Stack.Screen name="messagerie" />
           <Stack.Screen name="actualites" />
+          <Stack.Screen name="assistant" />
         </Stack.Protected>
         <Stack.Protected guard={status !== "authenticated"}>
           <Stack.Screen name="login" />

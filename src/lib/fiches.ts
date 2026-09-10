@@ -10,6 +10,11 @@
 //
 // Conséquence assumée, à dire clairement dans l'interface : la qualité de la
 // fiche dépend entièrement de la qualité du texte fourni.
+//
+// Depuis l'ajout de l'assistant Gemini (app/assistant.tsx), l'app SAIT faire
+// appel à une IA — mais ce moteur-ci ne change pas d'un pouce : il reste le
+// chemin qui marche hors ligne, sans clé, sans envoyer quoi que ce soit à
+// personne. Les deux coexistent, on ne remplace pas l'un par l'autre.
 
 const STOPWORDS = new Set(
   ("au aux avec ce ces dans de des du elle en et eux il ils je la le les leur lui ma mais me meme mes moi mon ne " +
