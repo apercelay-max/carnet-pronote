@@ -1,10 +1,11 @@
 import React from "react";
-import { Pressable, ActivityIndicator, ViewStyle, StyleProp } from "react-native";
+import { Animated, Pressable, ActivityIndicator, ViewStyle, StyleProp } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../theme/ThemeProvider";
 import { FORGE_GRADIENT } from "../../theme/styles";
 import { T } from "./Text";
 import { Icon, IconName } from "./Icon";
+import { usePressMotion } from "./Motion";
 
 type Variant = "primary" | "secondary" | "ghost";
 
@@ -20,6 +21,7 @@ type Props = {
 
 export function Button({ label, onPress, variant = "primary", disabled, loading, icon, style }: Props) {
   const theme = useTheme();
+  const press = usePressMotion(!disabled && !loading);
 
   // Forge reprend le dégradé de marque de PPL sur le bouton principal. Les
   // autres styles gardent l'accent plein choisi par la personne : un dégradé
@@ -34,10 +36,13 @@ export function Button({ label, onPress, variant = "primary", disabled, loading,
   const borderColor = variant === "secondary" ? theme.colors.border : "transparent";
 
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
       disabled={disabled || loading}
-      style={({ pressed }) => [
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={({ pressed }: { pressed: boolean }) => [
+        press.style,
         {
           backgroundColor: useGradient ? "transparent" : bg,
           overflow: "hidden",
@@ -50,7 +55,7 @@ export function Button({ label, onPress, variant = "primary", disabled, loading,
           alignItems: "center",
           justifyContent: "center",
           gap: 8,
-          opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          opacity: disabled ? 0.5 : pressed && !press.active ? 0.85 : 1,
         },
         style,
       ]}
@@ -73,6 +78,8 @@ export function Button({ label, onPress, variant = "primary", disabled, loading,
           </T>
         </>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);

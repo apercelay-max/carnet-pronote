@@ -1,6 +1,8 @@
 import React from "react";
-import { Pressable, View, ViewStyle, StyleProp } from "react-native";
+import { Animated, Pressable, View, ViewStyle, StyleProp } from "react-native";
 import { useTheme } from "../../theme/ThemeProvider";
+import { useMotionStore } from "../../store/useMotionStore";
+import { Reveal, usePressMotion, useStaggerIndex } from "./Motion";
 
 type Props = {
   children: React.ReactNode;
@@ -12,14 +14,32 @@ type Props = {
   // l'accent choisi par la personne — on peut la varier au cas par cas
   // (ex. tableau de bord) sans que ce soit obligatoire ailleurs.
   tint?: string;
+  // Rang forcé dans la cascade d'apparition. Par défaut, la carte prend son
+  // rang toute seule (ordre de montage dans l'écran) — voir Motion.tsx.
+  motionIndex?: number;
+  // À false, la carte n'est pas animée : utile pour un aperçu qui doit rester
+  // stable pendant qu'on règle justement l'animation.
+  animate?: boolean;
 };
 
 // Carte 100% opaque : le traitement visuel dépend entièrement du style
 // choisi (theme.structure.card.treatment). Aucun flou, aucune transparence
 // de fond — on a eu une régression de contraste avec des surfaces
 // translucides plus tôt dans le projet, on ne revient pas dessus.
-export function Card({ children, onPress, style, padded = true, elevated = false, tint }: Props) {
+export function Card({
+  children,
+  onPress,
+  style,
+  padded = true,
+  elevated = false,
+  tint,
+  motionIndex,
+  animate = true,
+}: Props) {
   const theme = useTheme();
+  const cardsOn = useMotionStore((s) => s.cards);
+  const index = useStaggerIndex(motionIndex);
+  const press = usePressMotion(!!onPress);
   const { card } = theme.structure;
   const c = theme.colors;
   const isPaper = card.treatment === "paper-margin";
@@ -145,18 +165,32 @@ export function Card({ children, onPress, style, padded = true, elevated = false
       }
     : { padding: 0 };
 
-  const content = (
+  const surface = (
     <View style={[base, extra, style]}>
       {decoration}
       <View style={innerPadding}>{children}</View>
     </View>
   );
 
+  // Toutes les cartes de l'app passent par ici : c'est ce qui fait que
+  // l'animation choisie dans les Réglages s'applique partout, sans que chaque
+  // écran ait quoi que ce soit à faire.
+  const content = (
+    <Reveal active={cardsOn && animate} index={index}>
+      {surface}
+    </Reveal>
+  );
+
   if (!onPress) return content;
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
-      {content}
+    <Pressable
+      onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={({ pressed }) => [{ opacity: pressed && !press.active ? 0.85 : 1 }]}
+    >
+      <Animated.View style={press.style}>{content}</Animated.View>
     </Pressable>
   );
 }
