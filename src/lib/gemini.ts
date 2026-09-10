@@ -96,6 +96,15 @@ export async function askGemini(question: string, options: AskOptions = {}): Pro
     if (res.status === 429) {
       throw new GeminiError("Quota Gemini dépassé pour l'instant — réessaie dans un moment.");
     }
+    // Google retire régulièrement ses anciens modèles, et le message arrive en
+    // anglais technique. On le garde (il nomme le modèle de remplacement) mais
+    // on dit d'abord, en français, ce qui se passe et qui doit agir — sinon on
+    // lit « no longer available to new users » sans savoir quoi en faire.
+    if (/no longer available|is not found|not supported|does not exist/i.test(String(message))) {
+      throw new GeminiError(
+        `Le modèle d'IA utilisé par l'app n'est plus proposé par Google. L'app doit être mise à jour (GEMINI_MODEL dans src/lib/gemini.ts). Message de Google : ${message}`
+      );
+    }
     throw new GeminiError(String(message) || `Erreur Gemini (HTTP ${res.status})`);
   }
 
