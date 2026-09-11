@@ -151,6 +151,12 @@ function Revision({ fiche }: { fiche: any }) {
   }, [index, fini]);
 
   const repondre = (su: boolean) => {
+    // On retire d'abord toute réponse précédente pour cette carte : la barre
+    // de progression permet de sauter en arrière (pastilles numérotées) et
+    // de répondre à nouveau à une carte déjà notée. Sans ce nettoyage, la
+    // carte serait comptée deux fois dans le score final.
+    setSues((v) => v.filter((i) => i !== index));
+    setRatees((v) => v.filter((i) => i !== index));
     if (su) setSues((v) => [...v, index]);
     else setRatees((v) => [...v, index]);
     setRetournee(false);
