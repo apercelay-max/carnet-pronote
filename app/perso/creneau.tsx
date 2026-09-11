@@ -26,6 +26,14 @@ function isoDay(d: Date): string {
 
 const HHMM = /^([01]?\d|2[0-3]):[0-5]\d$/;
 
+// HHMM autorise les heures sans zéro devant ("9:00"), donc comparer "debut" et
+// "fin" comme des chaînes est faux : "9:00" > "10:00" lexicographiquement,
+// alors que 9h précède bien 10h. On compare en minutes depuis minuit.
+function minutesDepuisMinuit(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
 export default function CreneauPersoScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -82,7 +90,7 @@ export default function CreneauPersoScreen() {
     titre.trim().length > 0 &&
     HHMM.test(debut) &&
     HHMM.test(fin) &&
-    debut < fin &&
+    minutesDepuisMinuit(debut) < minutesDepuisMinuit(fin) &&
     (recurrence === "hebdo" ? jour >= 0 && jour <= 6 : /^\d{4}-\d{2}-\d{2}$/.test(date));
 
   const enregistrer = () => {
@@ -263,7 +271,7 @@ export default function CreneauPersoScreen() {
           <T variant="caption" tone="tertiary">
             Format attendu : HH:MM (ex. 08:30, 17:45).
           </T>
-        ) : HHMM.test(debut) && HHMM.test(fin) && debut >= fin ? (
+        ) : HHMM.test(debut) && HHMM.test(fin) && minutesDepuisMinuit(debut) >= minutesDepuisMinuit(fin) ? (
           <T variant="caption" tone="tertiary">
             L'heure de fin doit être après l'heure de début.
           </T>
