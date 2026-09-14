@@ -12,7 +12,8 @@ import { Card } from "../../src/components/ui/Card";
 import { Icon } from "../../src/components/ui/Icon";
 import { Eyebrow, Chip, StatTile, StatRow, Bar } from "../../src/components/ui/Stats";
 import { colorForSubject, hexToRgba } from "../../src/theme/palette";
-import { cartesDepuisFiche, type Carte } from "../../src/lib/fiches";
+import type { Carte } from "../../src/lib/fiches";
+import { cartesDeFiche } from "../../src/lib/ficheGemini";
 import { useFichesStore } from "../../src/store/useFichesStore";
 
 export default function FlashcardsScreen() {
@@ -39,7 +40,7 @@ function ChoixDeFiche({ fiches, subjectColors }: { fiches: any[]; subjectColors:
   // fiche sans définition ni mot-clé ne donne aucune carte, autant le dire
   // tout de suite plutôt que d'ouvrir un écran vide.
   const avecCartes = useMemo(
-    () => fiches.map((f) => ({ fiche: f, nb: cartesDepuisFiche(f.genere).length })),
+    () => fiches.map((f) => ({ fiche: f, nb: cartesDeFiche(f).length })),
     [fiches]
   );
   const jouables = avecCartes.filter((x) => x.nb > 0);
@@ -116,7 +117,7 @@ function Revision({ fiche }: { fiche: any }) {
   const animationsEnabled = useRevisionPreferencesStore((s) => s.animationsEnabled);
   const color = colorForSubject(fiche.matiere, subjectColors);
 
-  const cartes = useMemo<Carte[]>(() => cartesDepuisFiche(fiche.genere), [fiche]);
+  const cartes = useMemo<Carte[]>(() => cartesDeFiche(fiche), [fiche]);
 
   const [index, setIndex] = useState(0);
   const [retournee, setRetournee] = useState(false);

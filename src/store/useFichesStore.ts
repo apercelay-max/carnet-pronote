@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { genererFiche, type FicheGeneree } from "../lib/fiches";
+import type { FicheIA } from "../lib/ficheGemini";
 
 // Les trois modes correspondent aux trois extensions demandées. Elles
 // partagent le même moteur d'extraction (src/lib/fiches.ts) mais n'affichent
@@ -61,6 +62,8 @@ export type Fiche = {
   matiere: string;
   texteSource: string;
   genere: FicheGeneree;
+  /** Version approfondie par Gemini, absente tant qu'on ne l'a pas demandée ou si elle a échoué. */
+  ia?: FicheIA;
   /** Ce que la personne ajoute ou corrige à la main — jamais écrasé par une régénération. */
   notesPerso: string;
   createdAt: number;
@@ -79,6 +82,7 @@ type FichesState = {
   creerFiche: (input: { mode: FicheMode; titre: string; matiere: string; texteSource: string }) => Fiche;
   regenerer: (id: string) => void;
   setNotesPerso: (id: string, notes: string) => void;
+  setIA: (id: string, ia: FicheIA) => void;
   supprimer: (id: string) => void;
 };
 
@@ -127,6 +131,11 @@ export const useFichesStore = create<FichesState>()(
       setNotesPerso: (id, notes) =>
         set((s) => ({
           fiches: s.fiches.map((f) => (f.id === id ? { ...f, notesPerso: notes, updatedAt: Date.now() } : f)),
+        })),
+
+      setIA: (id, ia) =>
+        set((s) => ({
+          fiches: s.fiches.map((f) => (f.id === id ? { ...f, ia, updatedAt: Date.now() } : f)),
         })),
 
       supprimer: (id) => set((s) => ({ fiches: s.fiches.filter((f) => f.id !== id) })),

@@ -35,6 +35,10 @@ export default function FicheNouvelleScreen() {
   const [titre, setTitre] = useState("");
   const [matiere, setMatiere] = useState("");
   const [texte, setTexte] = useState("");
+  // Activé par défaut pour les fiches complètes : c'est là que l'IA apporte le
+  // plus (méthodes, pièges, quiz). La fiche locale est créée quoi qu'il arrive,
+  // Gemini ne fait que l'approfondir ensuite sur l'écran de la fiche.
+  const [avecGemini, setAvecGemini] = useState(mode === "fiche");
 
   // Contenus de cours récupérés depuis Pronote (cahier de textes). On les
   // propose comme point de départ, mais ils sont souvent courts : d'où la
@@ -70,7 +74,7 @@ export default function FicheNouvelleScreen() {
       matiere: matiere || "Général",
       texteSource: texte,
     });
-    router.replace(`/fiche/${fiche.id}`);
+    router.replace(avecGemini ? `/fiche/${fiche.id}?ia=1` : `/fiche/${fiche.id}`);
   };
 
   return (
@@ -87,9 +91,9 @@ export default function FicheNouvelleScreen() {
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Icon name="warning" size={18} color={theme.colors.warning} />
           <T variant="caption" tone="secondary" style={{ flex: 1, lineHeight: 18 }}>
-            Tout se calcule sur ton téléphone, sans IA et sans connexion. L'app repère et
-            réorganise les phrases de ton cours — elle n'en invente aucune. Plus le texte que tu
-            colles est complet, meilleure sera la fiche.
+            {avecGemini
+              ? "Gemini approfondit ta fiche : cours réorganisé, méthodes, pièges à éviter, questions et QCM. Ton cours est envoyé à Google pour ça. Il peut se tromper : garde ton cours sous la main."
+              : "Tout se calcule sur ton téléphone, sans IA et sans connexion. L'app repère et réorganise les phrases de ton cours — elle n'en invente aucune. Plus le texte que tu colles est complet, meilleure sera la fiche."}
           </T>
         </View>
       </Card>
@@ -219,6 +223,35 @@ export default function FicheNouvelleScreen() {
           )}
         </View>
       </View>
+
+      <Pressable
+        onPress={() => setAvecGemini((v) => !v)}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          padding: 12,
+          marginBottom: theme.spacing(4),
+          borderRadius: theme.radius.md,
+          borderWidth: 1,
+          borderColor: avecGemini ? theme.colors.accent : theme.colors.border,
+          backgroundColor: avecGemini ? hexToRgba(theme.colors.accent, 0.08) : theme.colors.surface,
+        }}
+      >
+        <Icon
+          name={avecGemini ? "checkCircle" : "circle"}
+          size={20}
+          color={avecGemini ? theme.colors.accent : theme.colors.textTertiary}
+        />
+        <View style={{ flex: 1 }}>
+          <T variant="body" weight="semibold">
+            Approfondir avec Gemini
+          </T>
+          <T variant="caption" tone="secondary">
+            Fiche détaillée, méthodes, pièges et quiz pour le contrôle
+          </T>
+        </View>
+      </Pressable>
 
       <Button label="Générer" icon="sparkle" onPress={generer} disabled={!assezDeTexte} />
     </Screen>

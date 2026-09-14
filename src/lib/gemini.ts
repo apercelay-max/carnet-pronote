@@ -38,10 +38,16 @@ type AskOptions = {
   /** Échange précédent, pour que Gemini garde le fil. */
   history?: GeminiTurn[];
   signal?: AbortSignal;
+  /**
+   * Réglages de génération propres à un appel. Les fiches approfondies en ont
+   * besoin : une fiche complète dépasse largement 2048 tokens, et on veut du
+   * JSON strict (responseMimeType) plutôt que du texte libre à deviner.
+   */
+  generation?: { temperature?: number; maxOutputTokens?: number; responseMimeType?: string };
 };
 
 export async function askGemini(question: string, options: AskOptions = {}): Promise<string> {
-  const { apiKey, system, history = [], signal } = options;
+  const { apiKey, system, history = [], signal, generation } = options;
 
   const contents = [
     ...history.map((t) => ({ role: t.role, parts: [{ text: t.text }] })),
@@ -51,7 +57,7 @@ export async function askGemini(question: string, options: AskOptions = {}): Pro
   const payload: Record<string, unknown> = {
     model: GEMINI_MODEL,
     contents,
-    generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
+    generationConfig: { temperature: 0.4, maxOutputTokens: 2048, ...generation },
   };
   if (system) payload.systemInstruction = { parts: [{ text: system }] };
 
