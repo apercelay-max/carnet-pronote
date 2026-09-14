@@ -87,6 +87,37 @@ export default function ExtensionsScreen() {
         </Card>
       </Pressable>
 
+      {/* Groupes de classe : mis à côté de l'assistant plutôt que dans la
+          liste à interrupteurs, parce que ce n'est pas un outil local qu'on
+          active — il dépend du compte Carnet et de la classe. */}
+      <Pressable onPress={() => router.push("/groupes")} style={{ marginBottom: theme.spacing(3) }}>
+        <Card padded tint={theme.colors.accent}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 11,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: hexToRgba(theme.colors.accent, theme.isDark ? 0.14 : 0.1),
+              }}
+            >
+              <Icon name="users" size={19} color={theme.colors.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <T variant="body" weight="semibold">
+                Groupes de classe
+              </T>
+              <T variant="caption" tone="tertiary" style={{ marginTop: 2 }}>
+                Chat, événements, devoirs partagés et révisions de contrôles à plusieurs
+              </T>
+            </View>
+            <Icon name="chevronRight" size={16} color={theme.colors.textTertiary} />
+          </View>
+        </Card>
+      </Pressable>
+
       {/* Porte d'entrée vers l'espace révision dédié (barre du bas, fiches,
           flashcards, contrôles, réglages propres à la section) — les
           interrupteurs ci-dessous restent le réglage fin, ce CTA est le

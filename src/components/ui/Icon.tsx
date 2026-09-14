@@ -39,7 +39,11 @@ export type IconName =
   | "backpack"
   | "target"
   | "chat"
-  | "megaphone";
+  | "megaphone"
+  | "users"
+  | "send"
+  | "trash"
+  | "share";
 
 type Props = {
   name: IconName;
@@ -273,6 +277,31 @@ export function Icon({ name, size = 22, color, strokeWidth = 1.8 }: Props) {
         <>
           <Path d="M3 10v4a1.2 1.2 0 0 0 1.2 1.2H6l1 5h2l-1-5h1l9 4V6l-9 4H4.2A1.2 1.2 0 0 0 3 10Z" {...common} />
           <Path d="M19 9v6" {...common} />
+        </>
+      )}
+      {name === "users" && (
+        <>
+          <Circle cx="9" cy="8" r="3.5" {...common} />
+          <Path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" {...common} />
+          <Path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4" {...common} />
+          <Path d="M18 14.4c2.1.7 3.5 2.8 3.5 5.6" {...common} />
+        </>
+      )}
+      {name === "send" && (
+        <Path d="M4 12 20 4l-4.5 16-3.5-6.5L4 12Zm8 1.5L20 4" {...common} />
+      )}
+      {name === "trash" && (
+        <>
+          <Line x1="4" y1="7" x2="20" y2="7" {...common} />
+          <Path d="M9 7V4.5h6V7" {...common} />
+          <Path d="M6.5 7l1 13h9l1-13" {...common} />
+        </>
+      )}
+      {name === "share" && (
+        <>
+          <Path d="M12 15V3.5" {...common} />
+          <Polyline points="7.5,8 12,3.5 16.5,8" {...common} />
+          <Path d="M5 12v7a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-7" {...common} />
         </>
       )}
     </Svg>
