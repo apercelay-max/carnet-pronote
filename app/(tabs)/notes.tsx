@@ -197,8 +197,11 @@ export default function NotesScreen() {
         )}
       </View>
 
-      <View style={{ marginBottom: theme.spacing(3) }}>
+      <View style={{ marginBottom: theme.spacing(3), flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <Eyebrow>Toutes les notes</Eyebrow>
+        <T variant="caption" tone="tertiary">
+          Touche une note pour l'analyser
+        </T>
       </View>
       <View style={{ gap: theme.spacing(3) }}>
         {recentGrades.map((g) => {
@@ -213,7 +216,7 @@ export default function NotesScreen() {
           const ecart = on20 !== null && classAvg !== null ? on20 - classAvg : null;
 
           return (
-            <Card key={g.id} padded tint={color}>
+            <Card key={g.id} padded tint={color} onPress={() => router.push(`/note-analyse?id=${encodeURIComponent(g.id)}` as any)}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: color }} />
 
@@ -252,6 +255,9 @@ export default function NotesScreen() {
                     / {g.outOf && g.outOf.kind === GradeKind.Grade ? g.outOf.points : 20}
                   </T>
                 </View>
+                {/* Indice qu'on peut toucher la note : l'analyse Gemini est
+                    derrière, sinon personne ne la découvrirait. */}
+                <Icon name="sparkle" size={14} color={theme.colors.textTertiary} />
               </View>
             </Card>
           );
