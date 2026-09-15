@@ -490,6 +490,19 @@ export async function chargerFichesPartagees(controleId: string): Promise<FicheP
   return lignes.map(versFiche);
 }
 
+/** Toutes les fiches partagées dans le groupe, tous contrôles confondus (bibliothèque de la classe). */
+export async function chargerFichesGroupe(groupeId: string): Promise<FichePartagee[]> {
+  const lignes = verifier(
+    await getSupabase()
+      .from("carnet_groupes_fiches")
+      .select("*")
+      .eq("groupe_id", groupeId)
+      .order("created_at", { ascending: false })
+      .limit(200)
+  ) as any[];
+  return lignes.map(versFiche);
+}
+
 export async function partagerFiche(
   controle: ControleGroupe,
   userId: string,

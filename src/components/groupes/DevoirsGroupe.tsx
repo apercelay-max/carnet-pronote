@@ -14,6 +14,10 @@ import { Eyebrow, Chip, Bar } from "../ui/Stats";
 import { celebrate } from "../ui/Celebration";
 import { formatDayLabel } from "../../lib/format";
 import { jourISO, type DevoirGroupe } from "../../lib/groupes";
+import { choisirPhotos, extraireDevoirs, photosDisponibles, type DevoirExtrait } from "../../lib/photos";
+import { useGeminiStore } from "../../store/useGeminiStore";
+import { GeminiNotConfiguredError } from "../../lib/gemini";
+import { ActivityIndicator } from "react-native";
 import {
   BoutonTeinte,
   Champ,
@@ -44,9 +48,51 @@ export function DevoirsGroupe() {
   const [description, setDescription] = useState("");
   const [envoi, setEnvoi] = useState(false);
   const [voirPasses, setVoirPasses] = useState(false);
+  const envoyerTexte = useGroupesStore((s) => s.envoyerTexte);
+
+  // Photo du tableau → devoirs proposés, que l'on coche avant de publier :
+  // Gemini peut mal lire une date ou une matière, on ne publie rien sans relecture.
+  const [lecture, setLecture] = useState(false);
+  const [erreurPhoto, setErreurPhoto] = useState<string | null>(null);
+  const [proposes, setProposes] = useState<(DevoirExtrait & { garde: boolean })[] | null>(null);
+  const [publication, setPublication] = useState(false);
+  const [aideEnvoyee, setAideEnvoyee] = useState<Set<string>>(new Set());
+
+  async function photoTableau() {
+    setErreurPhoto(null);
+    try {
+      const photos = await choisirPhotos();
+      if (photos.length === 0) return;
+      setLecture(true);
+      if (!useGeminiStore.getState().keyLoaded) await useGeminiStore.getState().loadKey();
+      const devoirs = await extraireDevoirs(photos, useGeminiStore.getState().apiKey);
+      if (devoirs.length === 0) setErreurPhoto("Aucun devoir trouvé sur cette photo.");
+      else setProposes(devoirs.map((d) => ({ ...d, garde: true })));
+    } catch (err: any) {
+      setErreurPhoto(
+        err instanceof GeminiNotConfiguredError
+          ? "Gemini n'est pas configuré : ajoute ta clé dans l'assistant."
+          : err?.message ?? "La photo n'a pas pu être lue."
+      );
+    } finally {
+      setLecture(false);
+    }
+  }
+
+  async function publierProposes() {
+    if (!proposes) return;
+    setPublication(true);
+    for (const d of proposes.filter((x) => x.garde)) {
+      await ajouterDevoir({ matiere: d.matiere, echeance: d.echeance, description: d.description });
+    }
+    setPublication(false);
+    setProposes(null);
+  }
 
   const membres = actif?.membres ?? [];
   const suisAdmin = membres.some((m) => m.userId === userId && m.role === "admin");
+  // Un membre parti ne compte plus : sinon on afficherait « 25 / 24 ».
+  const idsMembres = new Set(membres.map((m) => m.userId));
 
   const { aVenir, passes } = useMemo(() => {
     const aujourdhui = jourISO(new Date());
@@ -73,8 +119,6 @@ export function DevoirsGroupe() {
 
   const carte = (d: DevoirGroupe) => {
     const couleur = colorForSubject(d.matiere || "Perso", subjectColors);
-    // Un membre parti ne compte plus : sinon on afficherait « 25 / 24 ».
-    const idsMembres = new Set(membres.map((m) => m.userId));
     const nbFaits = d.faits.filter((f) => f.fait && idsMembres.has(f.userId)).length;
     const total = Math.max(membres.length, 1);
     const faitParMoi = d.faits.some((f) => f.userId === userId && f.fait);
@@ -128,6 +172,31 @@ export function DevoirsGroupe() {
               </T>
             </View>
             <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+              {/* « J'ai besoin d'aide » : poste dans le chat en citant ceux qui
+                  l'ont déjà fait — ce sont eux qui peuvent expliquer. */}
+              {!faitParMoi && !aideEnvoyee.has(d.id) ? (
+                <BoutonTeinte
+                  label="J'ai besoin d'aide"
+                  icon="chat"
+                  color={theme.colors.warning}
+                  onPress={async () => {
+                    const ontFait = d.faits
+                      .filter((f) => f.fait && f.userId !== userId && idsMembres.has(f.userId))
+                      .map((f) => pseudoDe(membres, f.userId));
+                    const appel = ontFait.length
+                      ? `${ontFait.slice(0, 4).join(", ")}, vous l'avez fait : quelqu'un peut m'expliquer ?`
+                      : "Quelqu'un peut m'expliquer ?";
+                    const ok = await envoyerTexte(
+                      `🆘 J'ai besoin d'aide pour ${d.matiere ? `${d.matiere} — ` : ""}« ${titrePerso} » (pour ${formatDayLabel(dateDepuisISO(d.echeance))}). ${appel}`
+                    );
+                    if (ok) setAideEnvoyee((s) => new Set(s).add(d.id));
+                  }}
+                />
+              ) : aideEnvoyee.has(d.id) ? (
+                <T variant="caption" tone="tertiary">
+                  Demande d'aide envoyée dans le chat
+                </T>
+              ) : null}
               {dejaPerso ? (
                 <T variant="caption" tone="success">
                   Dans tes devoirs perso
@@ -185,8 +254,61 @@ export function DevoirsGroupe() {
           <BoutonTeinte label="Annuler" onPress={() => setFormOuvert(false)} color={theme.colors.textSecondary} />
         </Card>
       ) : (
-        <BoutonTeinte label="Nouveau devoir collectif" icon="plus" onPress={() => setFormOuvert(true)} />
+        <View style={{ gap: 8 }}>
+          <BoutonTeinte label="Nouveau devoir collectif" icon="plus" onPress={() => setFormOuvert(true)} />
+          {photosDisponibles() && !proposes ? (
+            <BoutonTeinte
+              label={lecture ? "Gemini lit le tableau…" : "Photo du tableau → devoirs"}
+              icon="sparkle"
+              onPress={lecture ? () => {} : photoTableau}
+            />
+          ) : null}
+          {lecture ? <ActivityIndicator color={theme.colors.accent} /> : null}
+          {erreurPhoto ? (
+            <T variant="caption" tone="danger">
+              {erreurPhoto}
+            </T>
+          ) : null}
+        </View>
       )}
+
+      {proposes ? (
+        <Card style={{ gap: theme.spacing(3) }}>
+          <Eyebrow color={theme.colors.accent}>Devoirs lus sur la photo</Eyebrow>
+          <T variant="caption" tone="tertiary">
+            Vérifie les dates et décoche ce qui est faux avant de publier pour tout le groupe.
+          </T>
+          {proposes.map((d, i) => (
+            <Pressable
+              key={i}
+              onPress={() => setProposes((l) => l && l.map((x, j) => (j === i ? { ...x, garde: !x.garde } : x)))}
+              style={{ flexDirection: "row", gap: 10, opacity: d.garde ? 1 : 0.5 }}
+            >
+              <Icon
+                name={d.garde ? "checkCircle" : "circle"}
+                size={20}
+                color={d.garde ? theme.colors.success : theme.colors.textTertiary}
+              />
+              <View style={{ flex: 1, gap: 2 }}>
+                <T variant="caption" weight="semibold" style={{ textTransform: "capitalize" }}>
+                  {d.matiere || "Sans matière"} · {formatDayLabel(dateDepuisISO(d.echeance))}
+                </T>
+                <T variant="body" style={{ lineHeight: 20 }}>
+                  {d.description}
+                </T>
+              </View>
+            </Pressable>
+          ))}
+          <Button
+            label={`Publier ${proposes.filter((x) => x.garde).length} devoir(s) pour le groupe`}
+            icon="check"
+            onPress={publierProposes}
+            loading={publication}
+            disabled={proposes.every((x) => !x.garde)}
+          />
+          <BoutonTeinte label="Annuler" onPress={() => setProposes(null)} color={theme.colors.textSecondary} />
+        </Card>
+      ) : null}
 
       <T variant="caption" tone="tertiary" style={{ lineHeight: 18 }}>
         Chacun coche pour lui-même : ta coche ne change rien pour les autres, mais tout le monde voit

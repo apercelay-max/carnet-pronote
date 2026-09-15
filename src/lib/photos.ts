@@ -75,6 +75,48 @@ export function choisirPhotos(): Promise<Photo[]> {
   });
 }
 
+export type DevoirExtrait = { matiere: string; echeance: string; description: string };
+
+const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+
+/**
+ * Photo du tableau (ou du carnet de liaison) → liste de devoirs. On donne à
+ * Gemini la date du jour ET les 14 prochains jours nommés : au tableau on
+ * écrit « pour jeudi », et un modèle ne sait pas quel jeudi c'est.
+ */
+export async function extraireDevoirs(photos: Photo[], apiKey: string | null): Promise<DevoirExtrait[]> {
+  const p = (n: number) => String(n).padStart(2, "0");
+  const iso = (d: Date) => `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  const calendrier = Array.from({ length: 15 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return `${JOURS[d.getDay()]} ${iso(d)}${i === 0 ? " (aujourd'hui)" : ""}`;
+  }).join(", ");
+
+  const brut = await askGemini(
+    `Sur cette photo (tableau de classe, carnet ou feuille), repère TOUS les devoirs à faire.
+Calendrier pour résoudre les dates relatives : ${calendrier}.
+Si aucune date n'est indiquée, prends le prochain jour de classe (demain, ou lundi si on est vendredi/samedi).
+Réponds uniquement en JSON : [{"matiere": "Maths", "echeance": "AAAA-MM-JJ", "description": "ce qu'il faut faire, recopié fidèlement"}]
+Tableau vide si la photo ne contient aucun devoir. N'invente rien.`,
+    { apiKey, images: photos, generation: { temperature: 0.1, maxOutputTokens: 4096, responseMimeType: "application/json" } }
+  );
+
+  let liste: any;
+  try {
+    liste = JSON.parse(brut.replace(/^\s*```(?:json)?\s*/i, "").replace(/\s*```\s*$/, ""));
+  } catch {
+    throw new Error("Gemini n'a pas réussi à lire les devoirs sur la photo. Réessaie avec une photo plus nette.");
+  }
+  return (Array.isArray(liste) ? liste : [])
+    .map((d: any) => ({
+      matiere: typeof d?.matiere === "string" ? d.matiere.trim().slice(0, 60) : "",
+      echeance: typeof d?.echeance === "string" ? d.echeance.trim() : "",
+      description: typeof d?.description === "string" ? d.description.trim().slice(0, 2000) : "",
+    }))
+    .filter((d: DevoirExtrait) => d.description && /^\d{4}-\d{2}-\d{2}$/.test(d.echeance));
+}
+
 export async function transcrireCours(photos: Photo[], apiKey: string | null): Promise<string> {
   const texte = await askGemini(
     `Transcris fidèlement en texte le contenu scolaire visible sur ${photos.length > 1 ? "ces photos (dans l'ordre)" : "cette photo"} : cahier, page de manuel ou tableau.

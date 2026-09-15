@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from "react";
-import { View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Pressable } from "react-native";
+import { useFichesStore } from "../../store/useFichesStore";
+import { chargerFichesGroupe, messageErreurGroupe, type FichePartagee } from "../../lib/groupes";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../theme/ThemeProvider";
 import { colorForSubject } from "../../theme/palette";
@@ -37,6 +39,32 @@ export function RevisionGroupe() {
   const [date, setDate] = useState(jourISO(new Date()));
   const [chapitre, setChapitre] = useState("");
   const [envoi, setEnvoi] = useState(false);
+
+  // Bibliothèque : toutes les fiches partagées dans le groupe, par matière.
+  // Chargée à part des contrôles, pour retrouver une fiche d'un vieux contrôle.
+  const fichesPerso = useFichesStore((s) => s.fiches);
+  const importerFiche = useFichesStore((s) => s.importerFiche);
+  const [biblio, setBiblio] = useState<FichePartagee[] | null>(null);
+  const [erreurBiblio, setErreurBiblio] = useState<string | null>(null);
+  const [matiereBiblio, setMatiereBiblio] = useState<string | null>(null);
+  const groupeId = actif?.groupeId;
+
+  useEffect(() => {
+    if (!groupeId) return;
+    let annule = false;
+    chargerFichesGroupe(groupeId)
+      .then((f) => !annule && setBiblio(f))
+      .catch((e) => !annule && setErreurBiblio(messageErreurGroupe(e)));
+    return () => {
+      annule = true;
+    };
+  }, [groupeId, actif?.controles.length]);
+
+  const matieresBiblio = useMemo(
+    () => [...new Set((biblio ?? []).map((f) => f.matiere || "Autre"))].sort(),
+    [biblio]
+  );
+  const biblioFiltree = (biblio ?? []).filter((f) => !matiereBiblio || (f.matiere || "Autre") === matiereBiblio);
 
   const { aVenir, passes } = useMemo(() => {
     const liste = actif?.controles ?? [];
@@ -130,6 +158,68 @@ export function RevisionGroupe() {
           <View style={{ gap: theme.spacing(3), opacity: 0.6 }}>{passes.slice(0, 10).map(carte)}</View>
         </>
       ) : null}
+
+      <View style={{ marginTop: theme.spacing(4) }}>
+        <Eyebrow>{`Fiches de la classe${biblio ? ` (${biblio.length})` : ""}`}</Eyebrow>
+      </View>
+      {erreurBiblio ? (
+        <T variant="caption" tone="danger">
+          {erreurBiblio}
+        </T>
+      ) : biblio === null ? (
+        <T variant="caption" tone="tertiary">
+          Chargement…
+        </T>
+      ) : biblio.length === 0 ? (
+        <Vide texte="Aucune fiche partagée pour l'instant. Ouvre un contrôle pour y partager les tiennes." />
+      ) : (
+        <>
+          {matieresBiblio.length > 1 ? (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+              {[null, ...matieresBiblio].map((m) => {
+                const on = matiereBiblio === m;
+                const c = m ? colorForSubject(m, subjectColors) : theme.colors.accent;
+                return (
+                  <Pressable key={m ?? "toutes"} onPress={() => setMatiereBiblio(m)}>
+                    <Chip color={on ? c : theme.colors.textTertiary} label={m ?? "Toutes"} />
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+          {biblioFiltree.map((f) => {
+            const couleur = colorForSubject(f.matiere || "Autre", subjectColors);
+            const locale = fichesPerso.find((x) => x.partageeId === f.id);
+            return (
+              <Card key={f.id} padded tint={couleur}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <BarreMatiere color={couleur} />
+                  <View style={{ flex: 1, gap: 5 }}>
+                    <T variant="body" weight="semibold" numberOfLines={2}>
+                      {f.titre}
+                    </T>
+                    <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
+                      <Chip color={couleur} label={f.matiere || "Autre"} />
+                      {f.ia ? <Chip color={theme.colors.accent} label="Gemini" /> : null}
+                    </View>
+                  </View>
+                  <BoutonTeinte
+                    label={locale ? "Ouvrir" : "Ajouter"}
+                    icon={locale ? "book" : "plus"}
+                    color={couleur}
+                    onPress={() => {
+                      const fiche =
+                        locale ??
+                        importerFiche({ partageeId: f.id, titre: f.titre, matiere: f.matiere, genere: f.genere, ia: f.ia });
+                      router.push(`/fiche/${fiche.id}`);
+                    }}
+                  />
+                </View>
+              </Card>
+            );
+          })}
+        </>
+      )}
     </Colonne>
   );
 }

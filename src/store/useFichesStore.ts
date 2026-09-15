@@ -68,6 +68,8 @@ export type Fiche = {
   dateControle?: string;
   /** "pronote" quand le texte vient du cahier de textes (préparation d'un contrôle). */
   source?: "pronote";
+  /** Id de la fiche partagée d'origine quand elle vient de la bibliothèque d'un groupe. */
+  partageeId?: string;
   /** Ce que la personne ajoute ou corrige à la main — jamais écrasé par une régénération. */
   notesPerso: string;
   createdAt: number;
@@ -94,6 +96,7 @@ type FichesState = {
   regenerer: (id: string) => void;
   setNotesPerso: (id: string, notes: string) => void;
   setIA: (id: string, ia: FicheIA) => void;
+  importerFiche: (input: { partageeId: string; titre: string; matiere: string; genere: FicheGeneree; ia?: FicheIA }) => Fiche;
   supprimer: (id: string) => void;
 };
 
@@ -145,6 +148,33 @@ export const useFichesStore = create<FichesState>()(
         set((s) => ({
           fiches: s.fiches.map((f) => (f.id === id ? { ...f, notesPerso: notes, updatedAt: Date.now() } : f)),
         })),
+
+      importerFiche: ({ partageeId, titre, matiere, genere, ia }) => {
+        const deja = get().fiches.find((f) => f.partageeId === partageeId);
+        if (deja) return deja;
+        const now = Date.now();
+        // Pas de cours source pour une fiche reçue : on reconstitue un texte à
+        // partir de son contenu, pour que « Refaire avec Gemini » ait quelque
+        // chose à relire au lieu d'échouer sur un texte vide.
+        const texteSource = ia
+          ? [...ia.resume, ...ia.plan.flatMap((p) => [p.titre, ...p.points]), ...ia.definitions.map((d) => `${d.terme} : ${d.sens}`)].join("\n")
+          : [...genere.resume, ...genere.points, ...genere.definitions.map((d) => `${d.terme} : ${d.sens}`)].join("\n");
+        const fiche: Fiche = {
+          id: nouvelId(),
+          mode: "fiche",
+          titre,
+          matiere,
+          texteSource,
+          genere,
+          ...(ia ? { ia } : {}),
+          partageeId,
+          notesPerso: "",
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((s) => ({ fiches: [fiche, ...s.fiches] }));
+        return fiche;
+      },
 
       setIA: (id, ia) =>
         set((s) => ({
