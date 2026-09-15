@@ -7,7 +7,7 @@ import { useDataStore } from "../../src/store/useDataStore";
 import { usePreferencesStore } from "../../src/store/usePreferencesStore";
 import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
 import { devoirManuelToAssignment } from "../../src/lib/persoItems";
-import { useDevoirsClasseStore } from "../../src/store/useDevoirsClasseStore";
+import { useDevoirsClasseStore, devoirsClasseEnAssignments } from "../../src/store/useDevoirsClasseStore";
 import { useAccountStore } from "../../src/store/useAccountStore";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
@@ -71,22 +71,7 @@ export default function DevoirsScreen() {
       [
         ...assignmentsPronote,
         ...devoirsManuels.map(devoirManuelToAssignment),
-        ...devoirsClasse.map(({ devoir, groupeId, groupeNom }) => {
-          const [y, m, d] = devoir.echeance.split("-").map(Number);
-          return {
-            id: `classe:${devoir.id}`,
-            classe: true,
-            devoirId: devoir.id,
-            groupeId,
-            groupeNom,
-            subject: { id: `classe:${devoir.matiere}`, name: devoir.matiere || "Classe" },
-            description: devoir.description,
-            deadline: new Date(y, m - 1, d),
-            // « Fait » est personnel : on ne regarde que MA coche.
-            done: devoir.faits.some((f) => f.userId === userId && f.fait),
-            difficulty: 0,
-          };
-        }),
+        ...devoirsClasseEnAssignments(devoirsClasse, userId),
       ] as unknown as Assignment[],
     [assignmentsPronote, devoirsManuels, devoirsClasse, userId]
   );

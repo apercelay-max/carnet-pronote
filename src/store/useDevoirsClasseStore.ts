@@ -18,6 +18,31 @@ import {
 
 export type DevoirClasse = { devoir: DevoirGroupe; groupeId: string; groupeNom: string };
 
+/**
+ * Devoirs de classe mis en forme d'`Assignment` Pronote, pour être fusionnés
+ * dans les mêmes listes (onglet Devoirs, rappels de l'accueil). Les champs en
+ * plus (`classe`, `devoirId`, `groupeId`, `groupeNom`) servent à router les
+ * actions vers le bon store.
+ */
+export function devoirsClasseEnAssignments(items: DevoirClasse[], userId: string | null) {
+  return items.map(({ devoir, groupeId, groupeNom }) => {
+    const [y, m, d] = devoir.echeance.split("-").map(Number);
+    return {
+      id: `classe:${devoir.id}`,
+      classe: true,
+      devoirId: devoir.id,
+      groupeId,
+      groupeNom,
+      subject: { id: `classe:${devoir.matiere}`, name: devoir.matiere || "Classe" },
+      description: devoir.description,
+      deadline: new Date(y, m - 1, d),
+      // « Fait » est personnel : on ne regarde que MA coche.
+      done: devoir.faits.some((f) => f.userId === userId && f.fait),
+      difficulty: 0,
+    };
+  });
+}
+
 type DevoirsClasseState = {
   items: DevoirClasse[];
   chargement: boolean;

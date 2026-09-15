@@ -17,6 +17,7 @@ import { Eyebrow, BigStat, StatTile, StatRow, Bar } from "../../src/components/u
 import { colorForSubject } from "../../src/theme/palette";
 import { formatGradeValue, formatTime, gradeOn20, formatDayLabel } from "../../src/lib/format";
 import { nextSchoolDay } from "../../src/lib/sacDeCours";
+import { AujourdhuiCard } from "../../src/components/AujourdhuiCard";
 import { GradeValue } from "pawnote";
 
 export default function DashboardScreen() {
@@ -85,6 +86,8 @@ export default function DashboardScreen() {
           </View>
         </Card>
       ) : null}
+
+      <AujourdhuiCard />
 
       <View style={{ gap: theme.spacing(4) }}>
         {visibleWidgets.map((id) => (
