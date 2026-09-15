@@ -254,6 +254,28 @@ export default function FicheScreen() {
         </Pressable>
       ) : null}
 
+      {(avecIA || fiche.texteSource.length >= 80) && (
+        <Pressable
+          onPress={() => router.push(`/controle-blanc?fiche=${fiche.id}` as any)}
+          style={{
+            marginBottom: theme.spacing(5),
+            marginTop: nbCartes > 0 ? -theme.spacing(2) : 0,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            paddingVertical: 13,
+            borderRadius: theme.radius.md,
+            backgroundColor: color,
+          }}
+        >
+          <Icon name="notes" size={17} color="#FFFFFF" />
+          <T variant="body" weight="semibold" style={{ color: "#FFFFFF" }}>
+            Faire un contrôle blanc
+          </T>
+        </Pressable>
+      )}
+
       <Section titre="Mes notes" color={color}>
         <TextInput
           value={fiche.notesPerso}
