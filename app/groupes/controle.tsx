@@ -20,6 +20,9 @@ import type { Carte } from "../../src/lib/fiches";
 import { cartesDeFiche } from "../../src/lib/ficheGemini";
 import { formatDayLabel } from "../../src/lib/format";
 import { joursAvantISO, type FichePartagee, type Membre, type ScoreGroupe } from "../../src/lib/groupes";
+import { ouvrirDuel, type CanalDuel, type Invitation, type JoueurDuel } from "../../src/lib/duel";
+
+type EtatAdversaire = { userId: string; pseudo: string; index: number; bonnes: number; fini: boolean; total: number };
 
 // Révision d'un contrôle en groupe : les fiches partagées par la classe, un
 // quiz commun construit à partir de ces fiches, et le classement.
@@ -107,6 +110,79 @@ export default function ControleGroupeScreen() {
   const [choixOuvert, setChoixOuvert] = useState(false);
   const [partie, setPartie] = useState<Question[] | null>(null);
 
+  // --- Duel en direct ------------------------------------------------------
+  // Les handlers du canal sont créés une seule fois : ils lisent l'état courant
+  // via des refs, sinon ils verraient des valeurs figées à l'ouverture.
+  const [enLigne, setEnLigne] = useState<JoueurDuel[]>([]);
+  const [invitation, setInvitation] = useState<Invitation | null>(null);
+  const [attenteDe, setAttenteDe] = useState<string | null>(null);
+  const [adversaire, setAdversaire] = useState<EtatAdversaire | null>(null);
+  const [refus, setRefus] = useState<string | null>(null);
+  const canalRef = useRef<CanalDuel | null>(null);
+  const attenteRef = useRef<{ versId: string; pseudo: string; questions: Question[] } | null>(null);
+  const adversaireRef = useRef<EtatAdversaire | null>(null);
+  adversaireRef.current = adversaire;
+
+  const monPseudo = actif?.membres.find((m) => m.userId === userId)?.pseudo ?? "Moi";
+
+  useEffect(() => {
+    if (statusCompte !== "connecte" || !userId || !controleId) return;
+    const canal = ouvrirDuel(controleId, { userId, pseudo: monPseudo }, {
+      onPresence: setEnLigne,
+      onInvite: (inv) => {
+        if (inv.versId === userId && !adversaireRef.current) setInvitation(inv);
+      },
+      onReponse: (r) => {
+        const attente = attenteRef.current;
+        if (r.versId !== userId || !attente || attente.versId !== r.deId) return;
+        attenteRef.current = null;
+        setAttenteDe(null);
+        if (!r.accepte) {
+          setRefus(`${attente.pseudo} a refusé le duel.`);
+          return;
+        }
+        setAdversaire({ userId: r.deId, pseudo: attente.pseudo, index: 0, bonnes: 0, fini: false, total: attente.questions.length });
+        setPartie(attente.questions);
+      },
+      onProgres: (p) => {
+        if (p.userId === adversaireRef.current?.userId)
+          setAdversaire((a) => (a ? { ...a, index: p.index, bonnes: p.bonnes } : a));
+      },
+      onFin: (f) => {
+        if (f.userId === adversaireRef.current?.userId)
+          setAdversaire((a) => (a ? { ...a, index: f.total, bonnes: f.bonnes, fini: true } : a));
+      },
+    });
+    canalRef.current = canal;
+    return () => {
+      canal.fermer();
+      canalRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusCompte, userId, controleId, monPseudo]);
+
+  const defier = (j: JoueurDuel, questions: Question[]) => {
+    if (!userId) return;
+    setRefus(null);
+    attenteRef.current = { versId: j.userId, pseudo: j.pseudo, questions };
+    setAttenteDe(j.pseudo);
+    canalRef.current?.inviter({ deId: userId, dePseudo: monPseudo, versId: j.userId, questions });
+  };
+
+  const accepter = (inv: Invitation) => {
+    if (!userId) return;
+    canalRef.current?.repondre({ deId: userId, versId: inv.deId, accepte: true });
+    setInvitation(null);
+    setAdversaire({ userId: inv.deId, pseudo: inv.dePseudo, index: 0, bonnes: 0, fini: false, total: inv.questions.length });
+    setPartie(inv.questions);
+  };
+
+  const refuser = (inv: Invitation) => {
+    if (!userId) return;
+    canalRef.current?.repondre({ deId: userId, versId: inv.deId, accepte: false });
+    setInvitation(null);
+  };
+
   const revenir = () => (router.canGoBack() ? router.back() : router.replace(`/groupes/${groupeId}`));
 
   useEffect(() => {
@@ -188,9 +264,20 @@ export default function ControleGroupeScreen() {
         questions={partie}
         couleur={couleur}
         titre={controle.chapitre || controle.matiere}
-        onTerminer={(bonnes, total) => enregistrerScore(controle.id, bonnes, total)}
-        onRejouer={() => setPartie(preparerPartie(cartes))}
-        onQuitter={() => setPartie(null)}
+        adversaire={adversaire}
+        onProgres={(index, bonnes) => userId && adversaire && canalRef.current?.progres({ userId, index, bonnes })}
+        onTerminer={(bonnes, total) => {
+          if (userId && adversaire) canalRef.current?.fin({ userId, bonnes, total });
+          enregistrerScore(controle.id, bonnes, total);
+        }}
+        onRejouer={() => {
+          setAdversaire(null);
+          setPartie(preparerPartie(cartes));
+        }}
+        onQuitter={() => {
+          setAdversaire(null);
+          setPartie(null);
+        }}
         classement={<Classement membres={membres} scores={scores ?? []} userId={userId} couleur={couleur} />}
       />
     );
@@ -243,6 +330,72 @@ export default function ControleGroupeScreen() {
           />
         )}
       </Card>
+
+      {invitation ? (
+        <Card elevated tint={couleur} style={{ marginBottom: theme.spacing(5), gap: theme.spacing(3) }}>
+          <Eyebrow color={couleur}>Duel</Eyebrow>
+          <T variant="body" weight="semibold">
+            {invitation.dePseudo} te défie sur ce quiz ({invitation.questions.length} questions) !
+          </T>
+          <View style={{ flexDirection: "row", gap: theme.spacing(3) }}>
+            <View style={{ flex: 1 }}>
+              <BoutonTeinte label="Refuser" onPress={() => refuser(invitation)} color={theme.colors.textSecondary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button label="Accepter" icon="target" onPress={() => accepter(invitation)} />
+            </View>
+          </View>
+        </Card>
+      ) : null}
+
+      {cartes.length > 0 ? (
+        <View style={{ marginBottom: theme.spacing(6) }}>
+          <View style={{ marginBottom: theme.spacing(3) }}>
+            <Eyebrow>Duel en direct</Eyebrow>
+          </View>
+          <Card padded style={{ gap: theme.spacing(3) }}>
+            {attenteDe ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <ActivityIndicator color={couleur} />
+                <T variant="caption" tone="secondary" style={{ flex: 1 }}>
+                  En attente de la réponse de {attenteDe}…
+                </T>
+                <Pressable
+                  onPress={() => {
+                    attenteRef.current = null;
+                    setAttenteDe(null);
+                  }}
+                  hitSlop={8}
+                >
+                  <T variant="caption" tone="tertiary">
+                    Annuler
+                  </T>
+                </Pressable>
+              </View>
+            ) : enLigne.length === 0 ? (
+              <T variant="caption" tone="tertiary" style={{ lineHeight: 18 }}>
+                Personne d'autre n'a ce contrôle ouvert pour l'instant. Dis à un camarade de l'ouvrir : il
+                apparaîtra ici et tu pourras le défier.
+              </T>
+            ) : (
+              enLigne.map((j) => (
+                <View key={j.userId} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.success }} />
+                  <T variant="body" weight="semibold" style={{ flex: 1 }} numberOfLines={1}>
+                    {j.pseudo}
+                  </T>
+                  <BoutonTeinte label="Défier" icon="target" color={couleur} onPress={() => defier(j, preparerPartie(cartes))} />
+                </View>
+              ))
+            )}
+            {refus ? (
+              <T variant="caption" tone="danger">
+                {refus}
+              </T>
+            ) : null}
+          </Card>
+        </View>
+      ) : null}
 
       <View style={{ marginBottom: theme.spacing(3) }}>
         <Eyebrow>Classement</Eyebrow>
@@ -440,10 +593,14 @@ function Quiz({
   onRejouer,
   onQuitter,
   classement,
+  adversaire,
+  onProgres,
 }: {
   questions: Question[];
   couleur: string;
   titre: string;
+  adversaire?: EtatAdversaire | null;
+  onProgres?: (index: number, bonnes: number) => void;
   onTerminer: (bonnes: number, total: number) => void;
   onRejouer: () => void;
   onQuitter: () => void;
@@ -471,6 +628,7 @@ function Quiz({
   }, [fini]);
 
   function suivante(bonne: boolean) {
+    onProgres?.(index + 1, bonnes + (bonne ? 1 : 0));
     if (bonne) setBonnes((b) => b + 1);
     setChoix(null);
     setRetournee(false);
@@ -504,6 +662,28 @@ function Quiz({
             Ton meilleur score compte pour le classement, et le groupe voit ta dernière partie.
           </T>
         </Card>
+        {adversaire ? (
+          <Card elevated tint={couleur} style={{ marginBottom: theme.spacing(5), gap: theme.spacing(2) }}>
+            <Eyebrow color={couleur}>{`Duel contre ${adversaire.pseudo}`}</Eyebrow>
+            {adversaire.fini ? (
+              <>
+                <T variant="title">
+                  {bonnes > adversaire.bonnes ? "Tu as gagné ! 🏆" : bonnes < adversaire.bonnes ? `${adversaire.pseudo} a gagné` : "Égalité !"}
+                </T>
+                <T variant="body" tone="secondary">
+                  Toi {bonnes} — {adversaire.bonnes} {adversaire.pseudo}
+                </T>
+              </>
+            ) : (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <ActivityIndicator color={couleur} />
+                <T variant="body" tone="secondary" style={{ flex: 1 }}>
+                  {adversaire.pseudo} joue encore ({adversaire.index}/{adversaire.total})…
+                </T>
+              </View>
+            )}
+          </Card>
+        ) : null}
         <View style={{ marginBottom: theme.spacing(3) }}>
           <Eyebrow>Classement</Eyebrow>
         </View>
@@ -537,6 +717,19 @@ function Quiz({
             </T>
           </View>
           <Bar value={index / total} color={couleur} />
+          {adversaire ? (
+            <>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <T variant="caption" tone="tertiary" weight="semibold">
+                  {adversaire.pseudo} {adversaire.fini ? "a terminé" : `· question ${Math.min(adversaire.index + 1, adversaire.total)}`}
+                </T>
+                <T variant="caption" tone="tertiary">
+                  {adversaire.bonnes} bonne{adversaire.bonnes > 1 ? "s" : ""}
+                </T>
+              </View>
+              <Bar value={adversaire.index / Math.max(adversaire.total, 1)} color={theme.colors.textTertiary} height={4} />
+            </>
+          ) : null}
         </View>
       </View>
 
