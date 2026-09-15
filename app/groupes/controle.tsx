@@ -106,6 +106,16 @@ export default function ControleGroupeScreen() {
 
   const [choixOuvert, setChoixOuvert] = useState(false);
   const [partie, setPartie] = useState<Question[] | null>(null);
+  // Incrémenté à chaque nouvelle partie (lancement ou Rejouer) et utilisé
+  // comme key sur <Quiz> : sans ça, Rejouer réutilise la même instance du
+  // composant et son état interne (index, score, "score déjà envoyé") reste
+  // celui de la partie précédente, donc Rejouer réaffichait "Terminé" avec
+  // l'ancien score au lieu de relancer une partie.
+  const [partieId, setPartieId] = useState(0);
+  const lancerPartie = (nouvellesQuestions: Question[]) => {
+    setPartie(nouvellesQuestions);
+    setPartieId((id) => id + 1);
+  };
 
   const revenir = () => (router.canGoBack() ? router.back() : router.replace(`/groupes/${groupeId}`));
 
@@ -185,11 +195,12 @@ export default function ControleGroupeScreen() {
   if (partie) {
     return (
       <Quiz
+        key={partieId}
         questions={partie}
         couleur={couleur}
         titre={controle.chapitre || controle.matiere}
         onTerminer={(bonnes, total) => enregistrerScore(controle.id, bonnes, total)}
-        onRejouer={() => setPartie(preparerPartie(cartes))}
+        onRejouer={() => lancerPartie(preparerPartie(cartes))}
         onQuitter={() => setPartie(null)}
         classement={<Classement membres={membres} scores={scores ?? []} userId={userId} couleur={couleur} />}
       />
@@ -239,7 +250,7 @@ export default function ControleGroupeScreen() {
           <Button
             label={`Lancer le quiz (${Math.min(cartes.length, QUESTIONS_PAR_PARTIE)} questions)`}
             icon="target"
-            onPress={() => setPartie(preparerPartie(cartes))}
+            onPress={() => lancerPartie(preparerPartie(cartes))}
           />
         )}
       </Card>
