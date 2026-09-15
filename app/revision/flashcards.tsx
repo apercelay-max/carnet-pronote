@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Pressable } from "react-native";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -15,6 +15,7 @@ import { colorForSubject, hexToRgba } from "../../src/theme/palette";
 import type { Carte } from "../../src/lib/fiches";
 import { cartesDeFiche } from "../../src/lib/ficheGemini";
 import { useFichesStore } from "../../src/store/useFichesStore";
+import { useProgressionStore, cartesDues, type CarteSuivie } from "../../src/store/useProgressionStore";
 
 export default function FlashcardsScreen() {
   const params = useLocalSearchParams<{ fiche?: string }>();
@@ -23,11 +24,26 @@ export default function FlashcardsScreen() {
 
   const ficheChoisie = fiches.find((f) => f.id === params.fiche);
 
+  // Mode « revue du jour » : les cartes dues de TOUTES les fiches, mélangées.
+  if (params.fiche === "revue") {
+    return <RevueDuJour />;
+  }
+
   if (!ficheChoisie) {
     return <ChoixDeFiche fiches={fiches} subjectColors={subjectColors} />;
   }
 
   return <Revision fiche={ficheChoisie} />;
+}
+
+function RevueDuJour() {
+  const fiches = useFichesStore((s) => s.fiches);
+  // Figé à l'ouverture : sinon chaque réponse retirerait la carte de la liste
+  // « dues » en pleine session et décalerait l'index.
+  const [cartes] = useState<CarteSuivie[]>(() =>
+    cartesDues(fiches, useProgressionStore.getState().cartes).sort(() => Math.random() - 0.5)
+  );
+  return <Revision fiche={{ id: "revue", titre: "Révision du jour", matiere: "Toutes matières" }} cartesImposees={cartes} />;
 }
 
 // --- Écran par défaut de l'onglet : choisir la fiche à réviser ----------
@@ -44,6 +60,8 @@ function ChoixDeFiche({ fiches, subjectColors }: { fiches: any[]; subjectColors:
     [fiches]
   );
   const jouables = avecCartes.filter((x) => x.nb > 0);
+  const etats = useProgressionStore((s) => s.cartes);
+  const nbDues = useMemo(() => cartesDues(fiches, etats).length, [fiches, etats]);
 
   return (
     <Screen>
@@ -53,6 +71,23 @@ function ChoixDeFiche({ fiches, subjectColors }: { fiches: any[]; subjectColors:
           Flashcards
         </T>
       </View>
+
+      {nbDues > 0 ? (
+        <Card elevated onPress={() => router.push("/revision/flashcards?fiche=revue")} style={{ marginBottom: theme.spacing(4) }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Icon name="refresh" size={22} color={theme.colors.accent} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <T variant="body" weight="semibold">
+                À revoir aujourd'hui : {nbDues} carte{nbDues > 1 ? "s" : ""}
+              </T>
+              <T variant="caption" tone="secondary">
+                Les cartes ratées reviennent vite, celles que tu sais de plus en plus tard.
+              </T>
+            </View>
+            <Icon name="chevronRight" size={16} color={theme.colors.textTertiary} />
+          </View>
+        </Card>
+      ) : null}
 
       <Card style={{ marginBottom: theme.spacing(5) }}>
         <View style={{ flexDirection: "row", gap: 10 }}>
@@ -110,14 +145,20 @@ function ChoixDeFiche({ fiches, subjectColors }: { fiches: any[]; subjectColors:
 
 // --- Écran de session : réviser -------------------------------------------
 
-function Revision({ fiche }: { fiche: any }) {
+function Revision({ fiche, cartesImposees }: { fiche: any; cartesImposees?: CarteSuivie[] }) {
   const theme = useTheme();
   const router = useRouter();
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
   const animationsEnabled = useRevisionPreferencesStore((s) => s.animationsEnabled);
+  const noterCarte = useProgressionStore((s) => s.noterCarte);
+  const enregistrerSession = useProgressionStore((s) => s.enregistrerSession);
   const color = colorForSubject(fiche.matiere, subjectColors);
 
-  const cartes = useMemo<Carte[]>(() => cartesDeFiche(fiche), [fiche]);
+  const cartes = useMemo<(Carte & { ficheId?: string })[]>(
+    () => cartesImposees ?? cartesDeFiche(fiche),
+    [fiche, cartesImposees]
+  );
+  const sessionEnregistree = useRef(false);
 
   const [index, setIndex] = useState(0);
   const [retournee, setRetournee] = useState(false);
@@ -151,7 +192,23 @@ function Revision({ fiche }: { fiche: any }) {
     if (!fini) useRevisionSessionStore.getState().setIndex(index);
   }, [index, fini]);
 
+  // Une session finie compte dans la progression, une seule fois.
+  useEffect(() => {
+    if (!fini || sessionEnregistree.current || sues.length + ratees.length === 0) return;
+    sessionEnregistree.current = true;
+    enregistrerSession({
+      ficheId: fiche.id,
+      matiere: fiche.matiere,
+      sues: sues.length,
+      total: sues.length + ratees.length,
+      type: "flashcards",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fini]);
+
   const repondre = (su: boolean) => {
+    const c = cartes[index];
+    if (c) noterCarte(c.ficheId ?? fiche.id, c.recto, su);
     if (su) setSues((v) => [...v, index]);
     else setRatees((v) => [...v, index]);
     setRetournee(false);
@@ -159,6 +216,7 @@ function Revision({ fiche }: { fiche: any }) {
   };
 
   const recommencer = () => {
+    sessionEnregistree.current = false;
     setIndex(0);
     setRetournee(false);
     setSues([]);
