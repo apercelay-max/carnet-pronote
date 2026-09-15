@@ -19,6 +19,11 @@ function joursAvant(d: Date): number {
   return Math.round(ms / (24 * 60 * 60 * 1000));
 }
 
+function isoJour(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 function libelleDelai(jours: number): string {
   if (jours <= 0) return "Aujourd'hui";
   if (jours === 1) return "Demain";
@@ -182,6 +187,30 @@ export default function ControlesScreen() {
                       <Icon name={pret ? "book" : "plus"} size={15} color={color} />
                       <T variant="caption" weight="semibold" style={{ color }}>
                         {pret ? "Ouvrir ma fiche" : "Créer une fiche"}
+                      </T>
+                    </Pressable>
+
+                    {/* Préparation depuis le cahier de textes : la date du
+                        contrôle est déjà connue, Gemini s'en sert pour le plan. */}
+                    <Pressable
+                      onPress={() =>
+                        router.push(
+                          `/preparer-controle?matiere=${encodeURIComponent(c.matiere)}&date=${isoJour(c.date)}` as any
+                        )
+                      }
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        paddingVertical: 9,
+                        borderRadius: 10,
+                        backgroundColor: color,
+                      }}
+                    >
+                      <Icon name="sparkle" size={15} color="#FFFFFF" />
+                      <T variant="caption" weight="semibold" style={{ color: "#FFFFFF" }}>
+                        Préparer avec mes cours et Gemini
                       </T>
                     </Pressable>
                   </View>

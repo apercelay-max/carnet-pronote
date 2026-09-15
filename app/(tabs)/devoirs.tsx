@@ -1,12 +1,14 @@
 import React, { useEffect, useCallback, useMemo, useState } from "react";
 import { View, Pressable } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSessionStore } from "../../src/store/useSessionStore";
 import { useDataStore } from "../../src/store/useDataStore";
 import { usePreferencesStore } from "../../src/store/usePreferencesStore";
 import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
 import { devoirManuelToAssignment } from "../../src/lib/persoItems";
+import { useDevoirsClasseStore } from "../../src/store/useDevoirsClasseStore";
+import { useAccountStore } from "../../src/store/useAccountStore";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { RichText } from "../../src/components/ui/RichText";
@@ -55,30 +57,70 @@ export default function DevoirsScreen() {
   const devoirsManuels = useLocalItemsStore((s) => s.devoirsManuels);
   const toggleDevoirManuelFait = useLocalItemsStore((s) => s.toggleDevoirManuelFait);
   const [sortMode, setSortMode] = useState<SortMode>("date");
+  const userId = useAccountStore((s) => s.userId);
+  const devoirsClasse = useDevoirsClasseStore((s) => s.items);
+  const chargerDevoirsClasse = useDevoirsClasseStore((s) => s.charger);
+  const basculerDevoirClasse = useDevoirsClasseStore((s) => s.basculer);
 
-  // Les devoirs ajoutés à la main sont fusionnés avec ceux de Pronote et
-  // traités exactement pareil (tri, stats, regroupement par date). Le drapeau
-  // `perso` sert juste à router l'action « cocher » vers le bon store et à
-  // afficher une puce.
+  // Les devoirs ajoutés à la main ET ceux des groupes de classe sont fusionnés
+  // avec ceux de Pronote et traités exactement pareil (tri, stats, regroupement
+  // par date). Les drapeaux `perso` / `classe` servent juste à router l'action
+  // « cocher » vers le bon store et à afficher une puce.
   const assignments = useMemo(
-    () => [...assignmentsPronote, ...devoirsManuels.map(devoirManuelToAssignment)] as Assignment[],
-    [assignmentsPronote, devoirsManuels]
+    () =>
+      [
+        ...assignmentsPronote,
+        ...devoirsManuels.map(devoirManuelToAssignment),
+        ...devoirsClasse.map(({ devoir, groupeId, groupeNom }) => {
+          const [y, m, d] = devoir.echeance.split("-").map(Number);
+          return {
+            id: `classe:${devoir.id}`,
+            classe: true,
+            devoirId: devoir.id,
+            groupeId,
+            groupeNom,
+            subject: { id: `classe:${devoir.matiere}`, name: devoir.matiere || "Classe" },
+            description: devoir.description,
+            deadline: new Date(y, m - 1, d),
+            // « Fait » est personnel : on ne regarde que MA coche.
+            done: devoir.faits.some((f) => f.userId === userId && f.fait),
+            difficulty: 0,
+          };
+        }),
+      ] as unknown as Assignment[],
+    [assignmentsPronote, devoirsManuels, devoirsClasse, userId]
+  );
+
+  // Rechargé à chaque retour sur l'onglet : un camarade a pu ajouter un devoir
+  // entre-temps, et c'est aussi là qu'on revient après en avoir publié un.
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) chargerDevoirsClasse();
+    }, [userId, chargerDevoirsClasse])
   );
 
   const sync = useCallback(() => {
     if (session) refreshAll(session);
-  }, [session, refreshAll]);
+    if (userId) chargerDevoirsClasse();
+  }, [session, refreshAll, userId, chargerDevoirsClasse]);
 
   // Confettis seulement quand on COCHE : décocher un devoir n'a rien d'une
   // victoire, et une volée de confettis à ce moment-là serait juste pénible.
   const toggle = useCallback(
     (a: Assignment, done: boolean) => {
-      if ((a as any).perso) toggleDevoirManuelFait(a.id);
+      if ((a as any).classe) basculerDevoirClasse((a as any).devoirId);
+      else if ((a as any).perso) toggleDevoirManuelFait(a.id);
       else toggleAssignmentDone(session, a.id, done);
       if (done) celebrate();
     },
-    [session, toggleAssignmentDone, toggleDevoirManuelFait]
+    [session, toggleAssignmentDone, toggleDevoirManuelFait, basculerDevoirClasse]
   );
+
+  const ouvrir = (a: Assignment) => {
+    if ((a as any).classe) return () => router.push(`/groupes/${(a as any).groupeId}` as any);
+    if ((a as any).perso) return () => router.push(`/perso/devoir?id=${a.id}`);
+    return undefined;
+  };
 
   useEffect(() => {
     if (session && assignmentsPronote.length === 0) sync();
@@ -221,7 +263,7 @@ export default function DevoirsScreen() {
               assignment={a}
               color={colorForSubject(a.subject.name, subjectColors)}
               onToggle={() => toggle(a, !a.done)}
-              onEdit={(a as any).perso ? () => router.push(`/perso/devoir?id=${a.id}`) : undefined}
+              onEdit={ouvrir(a)}
               showDate
             />
           ))}
@@ -260,7 +302,7 @@ export default function DevoirsScreen() {
                       assignment={a}
                       color={colorForSubject(a.subject.name, subjectColors)}
                       onToggle={() => toggle(a, !a.done)}
-              onEdit={(a as any).perso ? () => router.push(`/perso/devoir?id=${a.id}`) : undefined}
+                      onEdit={ouvrir(a)}
                     />
                   ))}
                 </View>
@@ -295,6 +337,7 @@ function AssignmentRow({
 }) {
   const theme = useTheme();
   const perso = (assignment as any).perso === true;
+  const groupeNom: string | undefined = (assignment as any).classe ? (assignment as any).groupeNom : undefined;
   const niveau = assignment.difficulty as unknown as number;
   const difficulty = difficultyLabel(niveau);
   const difficultyColor =
@@ -320,6 +363,7 @@ function AssignmentRow({
               {assignment.subject.name}
             </T>
             {perso ? <Chip color={theme.colors.accent} label="Perso" /> : null}
+            {groupeNom ? <Chip color={theme.colors.accent} label={`Classe · ${groupeNom}`} /> : null}
           </View>
 
           {/* Pronote renvoie souvent la description en HTML : passer par

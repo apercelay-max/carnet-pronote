@@ -69,13 +69,36 @@ export default function RevisionAccueilScreen() {
           paddingVertical: 14,
           borderRadius: theme.radius.md,
           backgroundColor: theme.colors.accent,
-          marginBottom: theme.spacing(6),
+          marginBottom: theme.spacing(3),
           opacity: pressed ? 0.85 : 1,
         })}
       >
         <Icon name="plus" size={18} color="#FFFFFF" />
         <T variant="body" weight="semibold" style={{ color: "#FFFFFF" }}>
           Nouvelle fiche
+        </T>
+      </Pressable>
+
+      {/* Deuxième entrée : partir des cours Pronote plutôt que d'un texte
+          collé à la main — c'est le chemin le plus rapide avant un contrôle. */}
+      <Pressable
+        onPress={() => router.push("/preparer-controle" as any)}
+        style={({ pressed }) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          paddingVertical: 13,
+          borderRadius: theme.radius.md,
+          borderWidth: 1,
+          borderColor: theme.colors.accent,
+          marginBottom: theme.spacing(6),
+          opacity: pressed ? 0.85 : 1,
+        })}
+      >
+        <Icon name="sparkle" size={17} color={theme.colors.accent} />
+        <T variant="body" weight="semibold" style={{ color: theme.colors.accent }}>
+          Préparer un contrôle avec mes cours
         </T>
       </Pressable>
 

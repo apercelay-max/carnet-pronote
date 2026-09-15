@@ -64,6 +64,10 @@ export type Fiche = {
   genere: FicheGeneree;
   /** Version approfondie par Gemini, absente tant qu'on ne l'a pas demandée ou si elle a échoué. */
   ia?: FicheIA;
+  /** "AAAA-MM-JJ" quand la fiche prépare un contrôle précis : Gemini y ajoute un plan jour par jour. */
+  dateControle?: string;
+  /** "pronote" quand le texte vient du cahier de textes (préparation d'un contrôle). */
+  source?: "pronote";
   /** Ce que la personne ajoute ou corrige à la main — jamais écrasé par une régénération. */
   notesPerso: string;
   createdAt: number;
@@ -79,7 +83,14 @@ type FichesState = {
   actives: Record<ExtensionId, boolean>;
   fiches: Fiche[];
   toggleExtension: (id: ExtensionId) => void;
-  creerFiche: (input: { mode: FicheMode; titre: string; matiere: string; texteSource: string }) => Fiche;
+  creerFiche: (input: {
+    mode: FicheMode;
+    titre: string;
+    matiere: string;
+    texteSource: string;
+    dateControle?: string;
+    source?: "pronote";
+  }) => Fiche;
   regenerer: (id: string) => void;
   setNotesPerso: (id: string, notes: string) => void;
   setIA: (id: string, ia: FicheIA) => void;
@@ -104,7 +115,7 @@ export const useFichesStore = create<FichesState>()(
       toggleExtension: (id) =>
         set((s) => ({ actives: { ...s.actives, [id]: !s.actives[id] } })),
 
-      creerFiche: ({ mode, titre, matiere, texteSource }) => {
+      creerFiche: ({ mode, titre, matiere, texteSource, dateControle, source }) => {
         const now = Date.now();
         const fiche: Fiche = {
           id: nouvelId(),
@@ -113,6 +124,8 @@ export const useFichesStore = create<FichesState>()(
           matiere,
           texteSource,
           genere: genererFiche(texteSource),
+          ...(dateControle ? { dateControle } : {}),
+          ...(source ? { source } : {}),
           notesPerso: "",
           createdAt: now,
           updatedAt: now,

@@ -384,8 +384,43 @@ function FicheIAVue({ ia, mode, color, rScale }: { ia: FicheIA; mode: string; co
   const montrerResume = mode !== "points";
   const montrerPlan = mode !== "resume";
 
+  const planRevision = ia.planRevision ?? [];
+
   return (
     <>
+      {complet && planRevision.length > 0 && (
+        <Section titre="Plan de révision" color={color}>
+          <View style={{ gap: 14 }}>
+            {planRevision.map((j, i) => (
+              <View key={i} style={{ flexDirection: "row", gap: 10 }}>
+                <View
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: hexToRgba(color, 0.16),
+                  }}
+                >
+                  <T style={{ color, fontSize: 12, fontWeight: "800" }}>{i + 1}</T>
+                </View>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <T variant="body" weight="semibold" style={{ textTransform: "capitalize" }}>
+                    {j.jour}
+                  </T>
+                  {j.taches.map((t, k) => (
+                    <T key={k} variant="caption" tone="secondary" style={petit}>
+                      • {t}
+                    </T>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </View>
+        </Section>
+      )}
+
       {montrerResume && ia.resume.length > 0 && (
         <Section titre="L'essentiel" color={color}>
           <View style={{ gap: 10 }}>

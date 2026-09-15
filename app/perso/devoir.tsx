@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Pressable, TextInput, ScrollView, Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
@@ -16,6 +16,10 @@ import { allKnownSubjects } from "../../src/lib/subjects";
 import { formatShortDay } from "../../src/lib/format";
 import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
 import { todayISODay } from "../../src/lib/persoItems";
+import { useAccountStore } from "../../src/store/useAccountStore";
+import { useGroupesStore } from "../../src/store/useGroupesStore";
+import { useDevoirsClasseStore } from "../../src/store/useDevoirsClasseStore";
+import { creerDevoir, messageErreurGroupe } from "../../src/lib/groupes";
 
 function isoDay(d: Date): string {
   const p = (n: number) => String(n).padStart(2, "0");
@@ -45,6 +49,23 @@ export default function DevoirPersoScreen() {
   const [duree, setDuree] = useState(existant?.duree != null ? String(existant.duree) : "");
   const [note, setNote] = useState(existant?.note ?? "");
 
+  // « Pour qui » : moi seul (devoir perso, local) ou un groupe de classe (le
+  // devoir part sur Supabase et apparaît dans l'onglet Devoirs de tous les
+  // membres). Seulement à la création : un devoir perso existant reste perso.
+  const userId = useAccountStore((s) => s.userId);
+  const groupes = useGroupesStore((s) => s.groupes);
+  const listeChargee = useGroupesStore((s) => s.listeChargee);
+  const chargerListe = useGroupesStore((s) => s.chargerListe);
+  const [cible, setCible] = useState<string | null>(null);
+  const [envoi, setEnvoi] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (userId && !listeChargee) chargerListe();
+  }, [userId, listeChargee, chargerListe]);
+
+  const groupeCible = groupes.find((g) => g.id === cible);
+
   const matieres = useMemo(
     () =>
       allKnownSubjects({
@@ -69,7 +90,27 @@ export default function DevoirPersoScreen() {
 
   const valide = titre.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date);
 
-  const enregistrer = () => {
+  const enregistrer = async () => {
+    if (!existant && cible && userId) {
+      setEnvoi(true);
+      setErreur(null);
+      try {
+        await creerDevoir(cible, userId, {
+          matiere: matiere.trim() || "Autre",
+          echeance: date,
+          description: [titre.trim(), note.trim()].filter(Boolean).join("\n"),
+        });
+        // Rechargé tout de suite pour qu'il soit déjà là en revenant sur Devoirs.
+        await useDevoirsClasseStore.getState().charger();
+        revenir();
+      } catch (err) {
+        setErreur(messageErreurGroupe(err));
+      } finally {
+        setEnvoi(false);
+      }
+      return;
+    }
+
     const payload = {
       titre: titre.trim(),
       matiere: matiere.trim(),
@@ -110,14 +151,67 @@ export default function DevoirPersoScreen() {
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Icon name="homework" size={18} color={theme.colors.accent} />
           <T variant="caption" tone="secondary" style={{ flex: 1, lineHeight: 18 }}>
-            Pour un devoir que Pronote n'affiche pas — un exercice donné à l'oral, du travail pour
-            une activité extra-scolaire… Il apparaît dans la liste des devoirs, avec une puce
-            « Perso ».
+            {groupeCible
+              ? `Ce devoir apparaîtra dans l'onglet Devoirs de tous les membres de « ${groupeCible.nom} ». Chacun le coche pour lui-même.`
+              : "Pour un devoir que Pronote n'affiche pas — un exercice donné à l'oral, du travail pour une activité extra-scolaire… Il apparaît dans la liste des devoirs, avec une puce « Perso »."}
           </T>
         </View>
       </Card>
 
       <View style={{ gap: theme.spacing(4), marginBottom: theme.spacing(5) }}>
+        {!existant && (
+          <View style={{ gap: 6 }}>
+            <Eyebrow>Pour qui</Eyebrow>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 6, paddingVertical: 2, paddingRight: 8 }}
+            >
+              {[{ id: null as string | null, label: "Moi seulement" }, ...groupes.map((g) => ({ id: g.id as string | null, label: `Classe · ${g.nom}` }))].map(
+                (opt) => {
+                  const on = cible === opt.id;
+                  return (
+                    <Pressable
+                      key={opt.id ?? "moi"}
+                      onPress={() => setCible(opt.id)}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: on ? theme.colors.accent : theme.colors.border,
+                        backgroundColor: on ? theme.colors.accentSoft : "transparent",
+                      }}
+                    >
+                      <T
+                        variant="caption"
+                        weight={on ? "semibold" : "regular"}
+                        style={{ color: on ? theme.colors.accent : theme.colors.textSecondary }}
+                      >
+                        {opt.label}
+                      </T>
+                    </Pressable>
+                  );
+                }
+              )}
+            </ScrollView>
+            {!userId && (
+              <Pressable onPress={() => router.push("/compte")} hitSlop={6}>
+                <T variant="caption" tone="tertiary">
+                  Connecte-toi au compte Carnet pour publier un devoir dans un groupe de classe →
+                </T>
+              </Pressable>
+            )}
+            {userId && listeChargee && groupes.length === 0 && (
+              <Pressable onPress={() => router.push("/groupes" as any)} hitSlop={6}>
+                <T variant="caption" tone="tertiary">
+                  Crée ou rejoins un groupe de classe pour partager tes devoirs →
+                </T>
+              </Pressable>
+            )}
+          </View>
+        )}
+
         <View style={{ gap: 6 }}>
           <Eyebrow>Ce qu'il y a à faire</Eyebrow>
           <TextInput
@@ -239,7 +333,19 @@ export default function DevoirPersoScreen() {
         </View>
       </View>
 
-      <Button label={existant ? "Enregistrer" : "Ajouter"} icon="check" onPress={enregistrer} disabled={!valide} />
+      {erreur && (
+        <T variant="caption" tone="danger" style={{ marginBottom: theme.spacing(3) }}>
+          {erreur}
+        </T>
+      )}
+
+      <Button
+        label={existant ? "Enregistrer" : groupeCible ? `Publier pour ${groupeCible.nom}` : "Ajouter"}
+        icon="check"
+        onPress={enregistrer}
+        disabled={!valide || envoi}
+        loading={envoi}
+      />
 
       {existant ? (
         <Pressable onPress={confirmerSuppression} style={{ marginTop: theme.spacing(4), alignItems: "center" }}>
