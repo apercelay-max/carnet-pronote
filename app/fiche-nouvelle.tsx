@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Pressable, TextInput, ScrollView } from "react-native";
+import { View, Pressable, TextInput, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { useDataStore } from "../src/store/useDataStore";
@@ -14,6 +14,9 @@ import { colorForSubject, hexToRgba } from "../src/theme/palette";
 import { stripHtml } from "../src/lib/fiches";
 import { useFichesStore, type FicheMode } from "../src/store/useFichesStore";
 import { formatDayLabel } from "../src/lib/format";
+import { choisirPhotos, photosDisponibles, transcrireCours, MAX_PHOTOS } from "../src/lib/photos";
+import { useGeminiStore } from "../src/store/useGeminiStore";
+import { GeminiNotConfiguredError } from "../src/lib/gemini";
 
 const TITRES: Record<FicheMode, string> = {
   fiche: "Nouvelle fiche",
@@ -39,6 +42,31 @@ export default function FicheNouvelleScreen() {
   // plus (méthodes, pièges, quiz). La fiche locale est créée quoi qu'il arrive,
   // Gemini ne fait que l'approfondir ensuite sur l'écran de la fiche.
   const [avecGemini, setAvecGemini] = useState(mode === "fiche");
+
+  // Photo du cours → texte : la transcription s'AJOUTE au texte déjà saisi,
+  // pour pouvoir photographier plusieurs pages en plusieurs fois.
+  const loadKey = useGeminiStore((s) => s.loadKey);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoErreur, setPhotoErreur] = useState<string | null>(null);
+  const photographier = async () => {
+    setPhotoErreur(null);
+    try {
+      const photos = await choisirPhotos();
+      if (photos.length === 0) return;
+      setPhotoBusy(true);
+      if (!useGeminiStore.getState().keyLoaded) await loadKey();
+      const transcription = await transcrireCours(photos, useGeminiStore.getState().apiKey);
+      setTexte((t) => (t.trim() ? `${t.trim()}\n\n${transcription}` : transcription));
+    } catch (err: any) {
+      setPhotoErreur(
+        err instanceof GeminiNotConfiguredError
+          ? "Gemini n'est pas configuré : ajoute ta clé dans l'assistant pour lire les photos."
+          : err?.message ?? "La photo n'a pas pu être lue."
+      );
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
 
   // Contenus de cours récupérés depuis Pronote (cahier de textes). On les
   // propose comme point de départ, mais ils sont souvent courts : d'où la
@@ -206,6 +234,38 @@ export default function FicheNouvelleScreen() {
               {stripHtml(texte).length} caractères
             </T>
           </View>
+          {photosDisponibles() && (
+            <Pressable
+              onPress={photographier}
+              disabled={photoBusy}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                paddingVertical: 11,
+                borderRadius: theme.radius.md,
+                borderWidth: 1,
+                borderStyle: "dashed",
+                borderColor: theme.colors.accent,
+                opacity: photoBusy ? 0.7 : 1,
+              }}
+            >
+              {photoBusy ? (
+                <ActivityIndicator color={theme.colors.accent} />
+              ) : (
+                <Icon name="plus" size={16} color={theme.colors.accent} />
+              )}
+              <T variant="caption" weight="semibold" style={{ color: theme.colors.accent }}>
+                {photoBusy ? "Gemini lit ta photo…" : `Photo de mon cahier ou du manuel (jusqu'à ${MAX_PHOTOS})`}
+              </T>
+            </Pressable>
+          )}
+          {photoErreur && (
+            <T variant="caption" tone="danger">
+              {photoErreur}
+            </T>
+          )}
           <TextInput
             value={texte}
             onChangeText={setTexte}

@@ -44,14 +44,22 @@ type AskOptions = {
    * JSON strict (responseMimeType) plutôt que du texte libre à deviner.
    */
   generation?: { temperature?: number; maxOutputTokens?: number; responseMimeType?: string };
+  /** Photos jointes à la question (base64 sans préfixe `data:`), lues par Gemini. */
+  images?: { mimeType: string; data: string }[];
 };
 
 export async function askGemini(question: string, options: AskOptions = {}): Promise<string> {
-  const { apiKey, system, history = [], signal, generation } = options;
+  const { apiKey, system, history = [], signal, generation, images = [] } = options;
 
   const contents = [
     ...history.map((t) => ({ role: t.role, parts: [{ text: t.text }] })),
-    { role: "user", parts: [{ text: question }] },
+    {
+      role: "user",
+      parts: [
+        ...images.map((img) => ({ inlineData: { mimeType: img.mimeType, data: img.data } })),
+        { text: question },
+      ],
+    },
   ];
 
   const payload: Record<string, unknown> = {
