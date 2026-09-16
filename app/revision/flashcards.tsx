@@ -159,6 +159,11 @@ function Revision({ fiche, cartesImposees }: { fiche: any; cartesImposees?: Cart
     [fiche, cartesImposees]
   );
   const sessionEnregistree = useRef(false);
+  // Index déjà passés à noterCarte cette session : sinon revenir sur une carte
+  // via la barre numérotée et y répondre à nouveau compte une 2e review pour
+  // les boîtes de Leitner (vues gonflées, boîte décalée par une simple
+  // relecture) alors qu'une seule review a vraiment eu lieu.
+  const carteNoteeRef = useRef<Set<number>>(new Set());
 
   const [index, setIndex] = useState(0);
   const [retournee, setRetournee] = useState(false);
@@ -208,7 +213,10 @@ function Revision({ fiche, cartesImposees }: { fiche: any; cartesImposees?: Cart
 
   const repondre = (su: boolean) => {
     const c = cartes[index];
-    if (c) noterCarte(c.ficheId ?? fiche.id, c.recto, su);
+    if (c && !carteNoteeRef.current.has(index)) {
+      carteNoteeRef.current.add(index);
+      noterCarte(c.ficheId ?? fiche.id, c.recto, su);
+    }
     if (su) setSues((v) => [...v, index]);
     else setRatees((v) => [...v, index]);
     setRetournee(false);
@@ -217,6 +225,7 @@ function Revision({ fiche, cartesImposees }: { fiche: any; cartesImposees?: Cart
 
   const recommencer = () => {
     sessionEnregistree.current = false;
+    carteNoteeRef.current.clear();
     setIndex(0);
     setRetournee(false);
     setSues([]);
