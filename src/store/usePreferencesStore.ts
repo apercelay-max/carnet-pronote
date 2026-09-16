@@ -2,11 +2,46 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AccentKey } from "../theme/palette";
-import { StyleId } from "../theme/styles";
+import { StyleId, TabBarTreatment } from "../theme/styles";
 import { IconName } from "../components/ui/Icon";
 
 export type ThemeMode = "system" | "dark" | "light";
 export type FontScaleKey = "sm" | "md" | "lg";
+
+// Forme des cartes, valable dans toute l'appli (toutes les cartes passent par
+// Card.tsx). "style" = l'arrondi prévu par le style choisi, sinon on impose
+// un arrondi fixe par-dessus — le reste du traitement (bordure, ombre,
+// bandeau) reste celui du style.
+export type CardShape = "style" | "carre" | "doux" | "arrondi" | "bulle";
+export const CARD_SHAPE_RADIUS: Record<Exclude<CardShape, "style">, number> = {
+  carre: 0,
+  doux: 8,
+  arrondi: 18,
+  bulle: 30,
+};
+
+// Disposition des widgets du tableau de bord.
+// - liste : une carte sous l'autre (comportement historique)
+// - grille : rangées de 2 cartes alignées
+// - colonnes : 2 colonnes indépendantes, les cartes s'empilent sans trou
+// - compact : liste resserrée, moins d'espace entre les cartes
+export type CardLayout = "liste" | "grille" | "colonnes" | "compact";
+
+// Style de la barre du bas : "style" = celui prévu par le style choisi, sinon
+// l'un des traitements existants, imposé quel que soit le style.
+export type TabBarChoice = "style" | TabBarTreatment;
+
+// Bulle colorée détachée à droite de la barre du bas, façon bouton « lancer
+// la séance » de PPL Tracker (startBtn dans NavBar.tsx) : un raccourci vers
+// l'action qu'on utilise le plus.
+export type TabBubbleAction = "revision" | "devoir" | "penseBete" | "assistant";
+
+export const TAB_BUBBLE_ACTIONS: Record<TabBubbleAction, { href: string; label: string; icon: IconName }> = {
+  revision: { href: "/revision", label: "Réviser", icon: "sparkle" },
+  devoir: { href: "/perso/devoir", label: "Nouveau devoir", icon: "plus" },
+  penseBete: { href: "/pense-bete", label: "Pense-bête", icon: "pin" },
+  assistant: { href: "/assistant", label: "Assistant", icon: "chat" },
+};
 
 export type WidgetId =
   | "penseBete"
@@ -168,6 +203,16 @@ type PreferencesState = {
   // revient pas tant que la config épinglée ne change pas (même logique que
   // le localStorage de PPL Tracker, voir NavBar.tsx / DISMISS_KEY).
   tabBarDismissedSignature: string | null;
+  cardShape: CardShape;
+  cardLayout: CardLayout;
+  tabBarChoice: TabBarChoice;
+  tabBubble: boolean;
+  tabBubbleAction: TabBubbleAction;
+  setCardShape: (shape: CardShape) => void;
+  setCardLayout: (layout: CardLayout) => void;
+  setTabBarChoice: (choice: TabBarChoice) => void;
+  setTabBubble: (on: boolean) => void;
+  setTabBubbleAction: (action: TabBubbleAction) => void;
   setThemeMode: (mode: ThemeMode) => void;
   setStyle: (id: StyleId) => void;
   setAccent: (accent: AccentKey) => void;
@@ -214,6 +259,16 @@ export const usePreferencesStore = create<PreferencesState>()(
       tabIcons: {},
       tabOverflow: [],
       tabBarDismissedSignature: null,
+      cardShape: "style",
+      cardLayout: "liste",
+      tabBarChoice: "style",
+      tabBubble: false,
+      tabBubbleAction: "revision",
+      setCardShape: (cardShape) => set({ cardShape }),
+      setCardLayout: (cardLayout) => set({ cardLayout }),
+      setTabBarChoice: (tabBarChoice) => set({ tabBarChoice }),
+      setTabBubble: (tabBubble) => set({ tabBubble }),
+      setTabBubbleAction: (tabBubbleAction) => set({ tabBubbleAction }),
       setThemeMode: (themeMode) => set({ themeMode }),
       setStyle: (styleId) => set({ styleId }),
       setAccent: (accent) => set({ accent }),

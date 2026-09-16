@@ -1,10 +1,10 @@
 import React, { useEffect, useCallback, useMemo, useState } from "react";
-import { View, Pressable } from "react-native";
+import { View, Pressable, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSessionStore } from "../../src/store/useSessionStore";
 import { useDataStore } from "../../src/store/useDataStore";
-import { usePreferencesStore, WidgetId } from "../../src/store/usePreferencesStore";
+import { usePreferencesStore, WidgetId, CardLayout } from "../../src/store/usePreferencesStore";
 import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
 import { devoirManuelToAssignment } from "../../src/lib/persoItems";
 import { Screen } from "../../src/components/ui/Screen";
@@ -39,6 +39,7 @@ export default function DashboardScreen() {
   } = useDataStore();
   const widgetOrder = usePreferencesStore((s) => s.widgetOrder);
   const hiddenWidgets = usePreferencesStore((s) => s.hiddenWidgets);
+  const cardLayout = usePreferencesStore((s) => s.cardLayout);
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
   const penseBetes = useLocalItemsStore((s) => s.penseBetes);
   const devoirsManuels = useLocalItemsStore((s) => s.devoirsManuels);
@@ -89,7 +90,7 @@ export default function DashboardScreen() {
 
       <AujourdhuiCard />
 
-      <View style={{ gap: theme.spacing(4) }}>
+      <WidgetLayout layout={cardLayout} gap={theme.spacing(cardLayout === "compact" ? 2 : 4)}>
         {visibleWidgets.map((id) => (
           <Widget
             key={id}
@@ -105,8 +106,49 @@ export default function DashboardScreen() {
             penseBetes={penseBetes}
           />
         ))}
-      </View>
+      </WidgetLayout>
     </Screen>
+  );
+}
+
+// Range les widgets selon la disposition choisie dans Réglages → Apparence.
+// Grille et colonnes repassent en liste sur un écran trop étroit : deux
+// cartes de moins de ~160px ne laissent plus lire les chiffres.
+function WidgetLayout({ layout, gap, children }: { layout: CardLayout; gap: number; children: React.ReactNode }) {
+  const { width } = useWindowDimensions();
+  const items = React.Children.toArray(children);
+  const twoColumns = (layout === "grille" || layout === "colonnes") && width >= 340;
+
+  if (!twoColumns) return <View style={{ gap }}>{items}</View>;
+
+  if (layout === "grille") {
+    const rows: React.ReactNode[][] = [];
+    for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2));
+    return (
+      <View style={{ gap }}>
+        {rows.map((row, i) => (
+          <View key={i} style={{ flexDirection: "row", gap, alignItems: "stretch" }}>
+            {row.map((item, j) => (
+              <View key={j} style={{ flex: 1, minWidth: 0 }}>
+                {item}
+              </View>
+            ))}
+            {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  // Colonnes : deux piles indépendantes, les cartes s'enchaînent sans laisser
+  // de trou quand leurs hauteurs diffèrent.
+  const left = items.filter((_, i) => i % 2 === 0);
+  const right = items.filter((_, i) => i % 2 === 1);
+  return (
+    <View style={{ flexDirection: "row", gap, alignItems: "flex-start" }}>
+      <View style={{ flex: 1, minWidth: 0, gap }}>{left}</View>
+      <View style={{ flex: 1, minWidth: 0, gap }}>{right}</View>
+    </View>
   );
 }
 

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useMemo } from "react";
 import { useColorScheme } from "react-native";
 import { ACCENTS, hexToRgba } from "./palette";
 import { STYLE_PALETTES, STYLE_STRUCTURE, StyleId, StyleNeutrals, StyleStructure } from "./styles";
-import { usePreferencesStore } from "../store/usePreferencesStore";
+import { usePreferencesStore, CARD_SHAPE_RADIUS } from "../store/usePreferencesStore";
 
 export type Theme = {
   isDark: boolean;
@@ -32,13 +32,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const styleId = usePreferencesStore((s) => s.styleId);
   const accentKey = usePreferencesStore((s) => s.accent);
   const fontScaleKey = usePreferencesStore((s) => s.fontScale);
+  const cardShape = usePreferencesStore((s) => s.cardShape);
+  const tabBarChoice = usePreferencesStore((s) => s.tabBarChoice);
 
   const isDark = themeMode === "system" ? system !== "light" : themeMode === "dark";
 
   const theme = useMemo<Theme>(() => {
     const palette = STYLE_PALETTES[styleId];
     const neutrals = isDark ? palette.dark : palette.light;
-    const structure = STYLE_STRUCTURE[styleId];
+    // Forme des cartes et barre du bas choisies à part dans les Réglages :
+    // elles priment sur celles du style, tout le reste du style est conservé.
+    const base = STYLE_STRUCTURE[styleId];
+    const structure: StyleStructure = {
+      ...base,
+      card: cardShape === "style" ? base.card : { ...base.card, radius: CARD_SHAPE_RADIUS[cardShape] },
+      tabBar: tabBarChoice === "style" ? base.tabBar : { ...base.tabBar, treatment: tabBarChoice },
+    };
     const accent = ACCENTS[accentKey];
     const scale = fontScaleKey === "sm" ? 0.92 : fontScaleKey === "lg" ? 1.12 : 1;
 
@@ -64,7 +73,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         caption: 12.5 * scale,
       },
     };
-  }, [isDark, styleId, accentKey, fontScaleKey]);
+  }, [isDark, styleId, accentKey, fontScaleKey, cardShape, tabBarChoice]);
 
   return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
 }

@@ -11,9 +11,15 @@ import {
   TabId,
   TAB_DEFAULTS,
   TAB_ICON_CHOICES,
+  TAB_BUBBLE_ACTIONS,
+  CARD_SHAPE_RADIUS,
+  CardShape,
+  CardLayout,
+  TabBarChoice,
+  TabBubbleAction,
 } from "../../src/store/usePreferencesStore";
 import { ACCENTS, ACCENT_ORDER, SUBJECT_PALETTE, colorForSubject } from "../../src/theme/palette";
-import { STYLE_ORDER, STYLE_META } from "../../src/theme/styles";
+import { STYLE_ORDER, STYLE_META, STYLE_STRUCTURE } from "../../src/theme/styles";
 import { allKnownSubjects } from "../../src/lib/subjects";
 import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
 import { Screen } from "../../src/components/ui/Screen";
@@ -64,6 +70,16 @@ export default function ReglagesScreen() {
   const setTabLabel = usePreferencesStore((s) => s.setTabLabel);
   const setTabIcon = usePreferencesStore((s) => s.setTabIcon);
   const setTabPinned = usePreferencesStore((s) => s.setTabPinned);
+  const cardShape = usePreferencesStore((s) => s.cardShape);
+  const setCardShape = usePreferencesStore((s) => s.setCardShape);
+  const cardLayout = usePreferencesStore((s) => s.cardLayout);
+  const setCardLayout = usePreferencesStore((s) => s.setCardLayout);
+  const tabBarChoice = usePreferencesStore((s) => s.tabBarChoice);
+  const setTabBarChoice = usePreferencesStore((s) => s.setTabBarChoice);
+  const tabBubble = usePreferencesStore((s) => s.tabBubble);
+  const setTabBubble = usePreferencesStore((s) => s.setTabBubble);
+  const tabBubbleAction = usePreferencesStore((s) => s.tabBubbleAction);
+  const setTabBubbleAction = usePreferencesStore((s) => s.setTabBubbleAction);
 
   // Le choix "épinglé dans la barre / rangé dans le +" n'a de sens visuel
   // que pour le traitement liquid-glass (Forge) — les 8 autres styles
@@ -302,16 +318,134 @@ export default function ReglagesScreen() {
         </View>
       </Card>
 
+      <SectionTitle icon="dashboard" title="Cartes" />
+      <Card style={{ marginBottom: theme.spacing(6) }}>
+        <View style={{ gap: theme.spacing(5) }}>
+        <View style={{ gap: theme.spacing(2) }}>
+          <T variant="caption" tone="secondary" weight="medium">
+            Forme des cartes (partout dans l'appli)
+          </T>
+          <ChoiceGrid<CardShape>
+            value={cardShape}
+            onChange={setCardShape}
+            options={[
+              { value: "style", label: "Du style", preview: <ShapePreview radius={STYLE_STRUCTURE[styleId].card.radius} /> },
+              { value: "carre", label: "Carrée", preview: <ShapePreview radius={CARD_SHAPE_RADIUS.carre} /> },
+              { value: "doux", label: "Douce", preview: <ShapePreview radius={CARD_SHAPE_RADIUS.doux} /> },
+              { value: "arrondi", label: "Arrondie", preview: <ShapePreview radius={CARD_SHAPE_RADIUS.arrondi} /> },
+              { value: "bulle", label: "Bulle", preview: <ShapePreview radius={CARD_SHAPE_RADIUS.bulle} /> },
+            ]}
+          />
+        </View>
+
+        <View style={{ gap: theme.spacing(2) }}>
+          <T variant="caption" tone="secondary" weight="medium">
+            Disposition du tableau de bord
+          </T>
+          <ChoiceGrid<CardLayout>
+            value={cardLayout}
+            onChange={setCardLayout}
+            options={[
+              { value: "liste", label: "Liste", preview: <LayoutPreview layout="liste" /> },
+              { value: "grille", label: "Grille", preview: <LayoutPreview layout="grille" /> },
+              { value: "colonnes", label: "Colonnes", preview: <LayoutPreview layout="colonnes" /> },
+              { value: "compact", label: "Compacte", preview: <LayoutPreview layout="compact" /> },
+            ]}
+          />
+        </View>
+        </View>
+      </Card>
+
       <SectionTitle icon="sparkle" title="Animations" />
       <MotionSettings />
 
       <SectionTitle icon="grip" title="Barre du bas" />
+      <Card style={{ marginBottom: theme.spacing(3) }}>
+        <View style={{ gap: theme.spacing(5) }}>
+        <View style={{ gap: theme.spacing(2) }}>
+          <T variant="caption" tone="secondary" weight="medium">
+            Style de la barre
+          </T>
+          <ChoiceGrid<TabBarChoice>
+            value={tabBarChoice}
+            onChange={setTabBarChoice}
+            options={[
+              { value: "style", label: "Du style", preview: <BarPreview treatment={STYLE_STRUCTURE[styleId].tabBar.treatment} /> },
+              { value: "liquid-glass", label: "Verre", preview: <BarPreview treatment="liquid-glass" /> },
+              { value: "floating-pill", label: "Pilule", preview: <BarPreview treatment="floating-pill" /> },
+              { value: "bordered-panel", label: "Panneau", preview: <BarPreview treatment="bordered-panel" /> },
+              { value: "solid-block", label: "Blocs", preview: <BarPreview treatment="solid-block" /> },
+              { value: "tabbed-ruler", label: "Règle", preview: <BarPreview treatment="tabbed-ruler" /> },
+            ]}
+          />
+        </View>
+
+        <View style={{ gap: theme.spacing(3) }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing(3) }}>
+            <View
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 17,
+                backgroundColor: theme.colors.accent,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon name={TAB_BUBBLE_ACTIONS[tabBubbleAction].icon} size={16} color="#FFFFFF" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <T weight="semibold">Bulle colorée séparée</T>
+              <T variant="caption" tone="secondary">
+                Un rond de couleur détaché à droite de la barre, comme sur PPL.
+              </T>
+            </View>
+            <Switch
+              value={tabBubble}
+              onValueChange={setTabBubble}
+              trackColor={{ false: theme.colors.borderSoft, true: theme.colors.accent }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+          {tabBubble ? (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {(Object.keys(TAB_BUBBLE_ACTIONS) as TabBubbleAction[]).map((id) => {
+                const a = TAB_BUBBLE_ACTIONS[id];
+                const active = id === tabBubbleAction;
+                return (
+                  <Pressable
+                    key={id}
+                    onPress={() => setTabBubbleAction(id)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: active ? theme.colors.accent : theme.colors.borderSoft,
+                      backgroundColor: active ? theme.colors.accentGlass : "transparent",
+                    }}
+                  >
+                    <Icon name={a.icon} size={14} color={active ? theme.colors.accent : theme.colors.textSecondary} />
+                    <T variant="caption" weight="semibold" style={{ color: active ? theme.colors.accent : theme.colors.textSecondary }}>
+                      {a.label}
+                    </T>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
+        </View>
+      </Card>
       <Card style={{ marginBottom: theme.spacing(6) }}>
         <T variant="caption" tone="secondary" style={{ marginBottom: theme.spacing(3) }}>
           Renomme, change l'icône, réordonne ou masque les catégories. « Réglages » reste
           toujours accessible pour ne pas te bloquer dehors.
           {hasOverflowTabBar
-            ? " Avec le style Forge, l'épingle garde l'onglet directement dans la barre — désépingle-le pour le ranger derrière le bouton +."
+            ? " Avec la barre Verre, l'épingle garde l'onglet directement dans la barre — désépingle-le pour le ranger derrière le bouton +."
             : ""}
         </T>
         <View>
@@ -726,6 +860,150 @@ export default function ReglagesScreen() {
         )}
       </Card>
     </Screen>
+  );
+}
+
+type Choice<V extends string> = { value: V; label: string; preview: React.ReactNode };
+
+// Grille de choix avec un petit aperçu dessiné au-dessus du libellé : plus
+// parlant qu'un simple SegmentedControl quand on choisit une forme.
+function ChoiceGrid<V extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: Choice<V>[];
+  value: V;
+  onChange: (v: V) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      {options.map((opt) => {
+        const active = opt.value === value;
+        return (
+          <Pressable
+            key={opt.value}
+            onPress={() => onChange(opt.value)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            style={{
+              width: 76,
+              alignItems: "center",
+              gap: 6,
+              paddingVertical: 10,
+              borderRadius: theme.radius.md,
+              borderWidth: active ? 1.5 : 1,
+              borderColor: active ? theme.colors.accent : theme.colors.borderSoft,
+              backgroundColor: active ? theme.colors.accentGlass : "transparent",
+            }}
+          >
+            <View style={{ height: 36, justifyContent: "center", alignItems: "center" }}>{opt.preview}</View>
+            <T
+              variant="caption"
+              weight="semibold"
+              numberOfLines={1}
+              style={{ fontSize: 11, color: active ? theme.colors.accent : theme.colors.textSecondary }}
+            >
+              {opt.label}
+            </T>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function ShapePreview({ radius }: { radius: number }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        width: 44,
+        height: 32,
+        // Aperçu 2x plus petit qu'une vraie carte : on divise l'arrondi pareil.
+        borderRadius: Math.min(radius / 2, 16),
+        backgroundColor: theme.colors.surfaceElevated,
+        borderWidth: 1.5,
+        borderColor: theme.colors.textTertiary,
+      }}
+    />
+  );
+}
+
+function LayoutPreview({ layout }: { layout: CardLayout }) {
+  const theme = useTheme();
+  const block = (h: number, key: number) => (
+    <View key={key} style={{ height: h, borderRadius: 2, backgroundColor: theme.colors.textTertiary, opacity: 0.7 }} />
+  );
+  if (layout === "grille") {
+    return (
+      <View style={{ width: 40, gap: 3 }}>
+        {[0, 1].map((r) => (
+          <View key={r} style={{ flexDirection: "row", gap: 3 }}>
+            <View style={{ flex: 1 }}>{block(14, 0)}</View>
+            <View style={{ flex: 1 }}>{block(14, 1)}</View>
+          </View>
+        ))}
+      </View>
+    );
+  }
+  if (layout === "colonnes") {
+    return (
+      <View style={{ width: 40, flexDirection: "row", gap: 3 }}>
+        <View style={{ flex: 1, gap: 3 }}>{[block(18, 0), block(10, 1)]}</View>
+        <View style={{ flex: 1, gap: 3 }}>{[block(9, 0), block(19, 1)]}</View>
+      </View>
+    );
+  }
+  const compact = layout === "compact";
+  return (
+    <View style={{ width: 40, gap: compact ? 2 : 4 }}>
+      {Array.from({ length: compact ? 4 : 3 }).map((_, i) => block(compact ? 6 : 8, i))}
+    </View>
+  );
+}
+
+function BarPreview({ treatment }: { treatment: string }) {
+  const theme = useTheme();
+  const c = theme.colors;
+  const glass = treatment === "liquid-glass";
+  const block = treatment === "solid-block";
+  return (
+    <View
+      style={{
+        width: 56,
+        height: 18,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-evenly",
+        borderRadius: block ? 3 : treatment === "bordered-panel" ? 6 : 9,
+        backgroundColor: glass ? c.accentGlass : c.surfaceElevated,
+        borderWidth: treatment === "floating-pill" ? 0 : 1,
+        borderColor: glass ? c.accent : c.border,
+        shadowColor: "#000",
+        shadowOpacity: treatment === "floating-pill" || glass ? 0.18 : 0,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+      }}
+    >
+      {[0, 1, 2].map((i) => {
+        const active = i === 0;
+        if (block) {
+          return (
+            <View key={i} style={{ width: 8, height: 8, borderRadius: 1, backgroundColor: active ? c.accent : c.textTertiary }} />
+          );
+        }
+        return (
+          <View key={i} style={{ alignItems: "center", gap: 1 }}>
+            <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: active ? c.accent : c.textTertiary }} />
+            {treatment === "tabbed-ruler" && active ? (
+              <View style={{ width: 8, height: 1.5, backgroundColor: c.accent }} />
+            ) : null}
+          </View>
+        );
+      })}
+    </View>
   );
 }
 

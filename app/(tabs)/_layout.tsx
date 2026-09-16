@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Image, Pressable, View } from "react-native";
+import { Image, Pressable, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePathname } from "expo-router";
 import { Tabs, TabList, TabTrigger, TabSlot } from "expo-router/ui";
@@ -11,6 +11,7 @@ import { GlassTabButton } from "../../src/components/ui/GlassTabButton";
 import { GlassPlusButton } from "../../src/components/ui/GlassPlusButton";
 import { TabOverflowDrawer } from "../../src/components/ui/TabOverflowDrawer";
 import { TabBarCrowdedBanner } from "../../src/components/ui/TabBarCrowdedBanner";
+import { TabBubbleButton } from "../../src/components/ui/TabBubbleButton";
 import { TAB_BAR_GRAIN_URI } from "../../src/components/ui/tabBarGrain";
 import { MAX_CONTENT_WIDTH } from "../../src/components/ui/Screen";
 import {
@@ -29,6 +30,12 @@ import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
 const MIN_TAB_WIDTH = 54;
 const GLASS_PADDING = 12; // padding horizontal total de la capsule (6 + 6)
 const TAB_GAP = 3;
+
+// Bulle colorée détachée (Réglages → Barre du bas) : même largeur et même
+// écart avec la capsule que le bouton de séance de PPL (startBtn : 54px,
+// gap 10 dans barRow).
+const BUBBLE_SIZE = 54;
+const BUBBLE_GAP = 10;
 
 // Résout l'onglet actif à partir du chemin courant, pour deux usages annexes
 // uniquement (mise en avant du bouton "+" et protection de l'onglet actif
@@ -58,6 +65,7 @@ function resolveActiveTab(pathname: string, order: TabId[]): TabId {
 export default function TabsLayout() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
   const pathname = usePathname();
   const { tabBar } = theme.structure;
   const c = theme.colors;
@@ -80,6 +88,7 @@ export default function TabsLayout() {
   const tabBarDismissedSignature = usePreferencesStore((s) => s.tabBarDismissedSignature);
   const setTabOverflow = usePreferencesStore((s) => s.setTabOverflow);
   const dismissTabBarCrowded = usePreferencesStore((s) => s.dismissTabBarCrowded);
+  const showBubble = usePreferencesStore((s) => s.tabBubble);
 
   // "reglages" reste toujours visible même si l'état persisté est corrompu :
   // sinon, plus aucun moyen de rouvrir les réglages pour le réafficher.
@@ -176,6 +185,15 @@ export default function TabsLayout() {
     );
   });
 
+  // Avec la bulle, la capsule et la bulle forment une rangée centrée (comme
+  // barRow chez PPL). La bulle ne peut pas vivre DANS <TabList> (voir plus
+  // bas : seuls des TabTrigger y sont admis), donc on calcule la largeur de
+  // la capsule à la main et on pose la bulle en absolu juste à sa droite.
+  const barMarginBottom = Math.max(insets.bottom, 12);
+  const rowWidth = Math.max(0, Math.min(windowWidth - 28, MAX_CONTENT_WIDTH - 20));
+  const rowLeft = (windowWidth - rowWidth) / 2;
+  const capsuleWidth = rowWidth - BUBBLE_SIZE - BUBBLE_GAP;
+
   const listStyle = {
     flexDirection: "row" as const,
     overflow: "hidden" as const,
@@ -206,7 +224,29 @@ export default function TabsLayout() {
           gap: 3,
         }
       : { backgroundColor: c.surface, borderWidth: isFloating ? 0 : 1, borderColor: c.border }),
+    ...(showBubble
+      ? {
+          width: capsuleWidth,
+          maxWidth: capsuleWidth,
+          alignSelf: "flex-start" as const,
+          marginHorizontal: 0,
+          marginLeft: rowLeft,
+        }
+      : null),
   };
+
+  const bubble = showBubble ? (
+    <TabBubbleButton
+      style={{
+        position: "absolute",
+        left: rowLeft + capsuleWidth + BUBBLE_GAP,
+        bottom: barMarginBottom,
+        width: BUBBLE_SIZE,
+        height: capsuleSize.height || 58,
+        zIndex: 3,
+      }}
+    />
+  ) : null;
 
   // Décalage au-dessus de la barre pour le tiroir "+" et le bandeau "trop
   // chargée" : marge basse de la capsule + sa hauteur mesurée + un petit
@@ -329,8 +369,11 @@ export default function TabsLayout() {
           )}
         </>
       ) : (
-        <TabList style={listStyle}>{triggers}</TabList>
+        <TabList style={listStyle} onLayout={onCapsuleLayout}>
+          {triggers}
+        </TabList>
       )}
+      {bubble}
     </Tabs>
   );
 }
