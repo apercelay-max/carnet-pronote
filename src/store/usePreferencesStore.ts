@@ -21,11 +21,12 @@ export const CARD_SHAPE_RADIUS: Record<Exclude<CardShape, "style">, number> = {
 };
 
 // Disposition des widgets du tableau de bord.
+// - auto : s'adapte à la largeur de l'écran (1, 2 ou 3 colonnes)
 // - liste : une carte sous l'autre (comportement historique)
 // - grille : rangées de 2 cartes alignées
 // - colonnes : 2 colonnes indépendantes, les cartes s'empilent sans trou
 // - compact : liste resserrée, moins d'espace entre les cartes
-export type CardLayout = "liste" | "grille" | "colonnes" | "compact";
+export type CardLayout = "auto" | "liste" | "grille" | "colonnes" | "compact";
 
 // Style de la barre du bas : "style" = celui prévu par le style choisi, sinon
 // l'un des traitements existants, imposé quel que soit le style.
@@ -260,7 +261,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       tabOverflow: [],
       tabBarDismissedSignature: null,
       cardShape: "style",
-      cardLayout: "liste",
+      cardLayout: "auto",
       tabBarChoice: "style",
       tabBubble: false,
       tabBubbleAction: "revision",

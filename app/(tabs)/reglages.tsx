@@ -340,12 +340,13 @@ export default function ReglagesScreen() {
 
         <View style={{ gap: theme.spacing(2) }}>
           <T variant="caption" tone="secondary" weight="medium">
-            Disposition du tableau de bord
+            Disposition du tableau de bord (« Auto » suit la largeur de l'écran)
           </T>
           <ChoiceGrid<CardLayout>
             value={cardLayout}
             onChange={setCardLayout}
             options={[
+              { value: "auto", label: "Auto", preview: <LayoutPreview layout="auto" /> },
               { value: "liste", label: "Liste", preview: <LayoutPreview layout="liste" /> },
               { value: "grille", label: "Grille", preview: <LayoutPreview layout="grille" /> },
               { value: "colonnes", label: "Colonnes", preview: <LayoutPreview layout="colonnes" /> },
@@ -953,6 +954,20 @@ function LayoutPreview({ layout }: { layout: CardLayout }) {
       <View style={{ width: 40, flexDirection: "row", gap: 3 }}>
         <View style={{ flex: 1, gap: 3 }}>{[block(18, 0), block(10, 1)]}</View>
         <View style={{ flex: 1, gap: 3 }}>{[block(9, 0), block(19, 1)]}</View>
+      </View>
+    );
+  }
+  if (layout === "auto") {
+    // Téléphone (1 colonne) → écran large (2 colonnes), côte à côte.
+    return (
+      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 4 }}>
+        <View style={{ width: 12, gap: 2, padding: 1.5, borderRadius: 2, borderWidth: 1, borderColor: theme.colors.textTertiary }}>
+          {[0, 1, 2].map((i) => block(4, i))}
+        </View>
+        <View style={{ width: 26, flexDirection: "row", gap: 2, padding: 1.5, borderRadius: 2, borderWidth: 1, borderColor: theme.colors.textTertiary }}>
+          <View style={{ flex: 1, gap: 2 }}>{[block(7, 0), block(4, 1)]}</View>
+          <View style={{ flex: 1, gap: 2 }}>{[block(4, 0), block(7, 1)]}</View>
+        </View>
       </View>
     );
   }

@@ -11,6 +11,9 @@ type Props = {
   scroll?: boolean;
   onRefresh?: () => void;
   refreshing?: boolean;
+  // Largeur max propre à un écran (ex. tableau de bord sur plusieurs
+  // colonnes). Par défaut, la colonne centrée habituelle.
+  maxWidth?: number;
 };
 
 // Largeur max du contenu : au-delà (desktop web), on centre une colonne
@@ -18,7 +21,7 @@ type Props = {
 // fenêtre — sinon ça ressemble juste à un site web, pas à une vraie app.
 export const MAX_CONTENT_WIDTH = 560;
 
-export function Screen({ children, scroll = true, onRefresh, refreshing }: Props) {
+export function Screen({ children, scroll = true, onRefresh, refreshing, maxWidth = MAX_CONTENT_WIDTH }: Props) {
   const theme = useTheme();
   const motionId = useMotionStore((s) => s.motionId);
   const screensOn = useMotionStore((s) => s.screens);
@@ -45,7 +48,7 @@ export function Screen({ children, scroll = true, onRefresh, refreshing }: Props
         active={screensOn}
         motionId={screenMotion}
         replayKey={`${visit}-${screenMotion}`}
-        style={fill ? [styles.flex, styles.centerColumn] : styles.centerColumn}
+        style={fill ? [styles.flex, styles.centerColumn, { maxWidth }] : [styles.centerColumn, { maxWidth }]}
       >
         {children}
       </Reveal>

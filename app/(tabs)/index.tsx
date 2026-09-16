@@ -7,7 +7,7 @@ import { useDataStore } from "../../src/store/useDataStore";
 import { usePreferencesStore, WidgetId, CardLayout } from "../../src/store/usePreferencesStore";
 import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
 import { devoirManuelToAssignment } from "../../src/lib/persoItems";
-import { Screen } from "../../src/components/ui/Screen";
+import { Screen, MAX_CONTENT_WIDTH } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { plainText } from "../../src/components/ui/RichText";
 import { Card } from "../../src/components/ui/Card";
@@ -40,6 +40,8 @@ export default function DashboardScreen() {
   const widgetOrder = usePreferencesStore((s) => s.widgetOrder);
   const hiddenWidgets = usePreferencesStore((s) => s.hiddenWidgets);
   const cardLayout = usePreferencesStore((s) => s.cardLayout);
+  const { width: windowWidth } = useWindowDimensions();
+  const columns = dashboardColumns(cardLayout, windowWidth);
   const subjectColors = usePreferencesStore((s) => s.subjectColors);
   const penseBetes = useLocalItemsStore((s) => s.penseBetes);
   const devoirsManuels = useLocalItemsStore((s) => s.devoirsManuels);
@@ -62,7 +64,7 @@ export default function DashboardScreen() {
   const visibleWidgets = widgetOrder.filter((w) => !hiddenWidgets.includes(w));
 
   return (
-    <Screen onRefresh={isDemo ? undefined : sync} refreshing={loading}>
+    <Screen onRefresh={isDemo ? undefined : sync} refreshing={loading} maxWidth={dashboardMaxWidth(columns)}>
       <View style={{ marginBottom: theme.spacing(6) }}>
         <T variant="caption" tone="secondary">
           {greeting()}
@@ -90,7 +92,7 @@ export default function DashboardScreen() {
 
       <AujourdhuiCard />
 
-      <WidgetLayout layout={cardLayout} gap={theme.spacing(cardLayout === "compact" ? 2 : 4)}>
+      <WidgetLayout layout={cardLayout} columns={columns} gap={theme.spacing(cardLayout === "compact" ? 2 : 4)}>
         {visibleWidgets.map((id) => (
           <Widget
             key={id}
@@ -111,43 +113,69 @@ export default function DashboardScreen() {
   );
 }
 
-// Range les widgets selon la disposition choisie dans Réglages → Apparence.
-// Grille et colonnes repassent en liste sur un écran trop étroit : deux
-// cartes de moins de ~160px ne laissent plus lire les chiffres.
-function WidgetLayout({ layout, gap, children }: { layout: CardLayout; gap: number; children: React.ReactNode }) {
-  const { width } = useWindowDimensions();
-  const items = React.Children.toArray(children);
-  const twoColumns = (layout === "grille" || layout === "colonnes") && width >= 340;
+// Nombre de colonnes du tableau de bord selon la disposition choisie et la
+// largeur de l'écran. "auto" suit uniquement la largeur : une colonne sur
+// téléphone, deux en paysage / tablette, trois sur grand écran. Grille et
+// colonnes imposent au moins deux colonnes, sauf écran vraiment trop étroit
+// (deux cartes de moins de ~160px ne laissent plus lire les chiffres).
+export function dashboardColumns(layout: CardLayout, windowWidth: number): number {
+  if (layout === "liste" || layout === "compact") return 1;
+  if (layout === "auto") return windowWidth < 600 ? 1 : windowWidth < 1000 ? 2 : 3;
+  return windowWidth < 340 ? 1 : windowWidth < 1000 ? 2 : 3;
+}
 
-  if (!twoColumns) return <View style={{ gap }}>{items}</View>;
+// Largeur max de la page : la colonne centrée de 560px s'élargit quand le
+// tableau de bord passe sur plusieurs colonnes, pour que les cartes gardent
+// une largeur confortable au lieu d'être écrasées.
+export function dashboardMaxWidth(columns: number): number {
+  return columns >= 3 ? 1200 : columns === 2 ? 880 : MAX_CONTENT_WIDTH;
+}
+
+// Range les widgets selon la disposition choisie dans Réglages → Cartes.
+function WidgetLayout({
+  layout,
+  columns,
+  gap,
+  children,
+}: {
+  layout: CardLayout;
+  columns: number;
+  gap: number;
+  children: React.ReactNode;
+}) {
+  const items = React.Children.toArray(children);
+
+  if (columns <= 1) return <View style={{ gap }}>{items}</View>;
 
   if (layout === "grille") {
     const rows: React.ReactNode[][] = [];
-    for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2));
+    for (let i = 0; i < items.length; i += columns) rows.push(items.slice(i, i + columns));
     return (
       <View style={{ gap }}>
         {rows.map((row, i) => (
           <View key={i} style={{ flexDirection: "row", gap, alignItems: "stretch" }}>
-            {row.map((item, j) => (
+            {Array.from({ length: columns }).map((_, j) => (
               <View key={j} style={{ flex: 1, minWidth: 0 }}>
-                {item}
+                {row[j] ?? null}
               </View>
             ))}
-            {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
           </View>
         ))}
       </View>
     );
   }
 
-  // Colonnes : deux piles indépendantes, les cartes s'enchaînent sans laisser
-  // de trou quand leurs hauteurs diffèrent.
-  const left = items.filter((_, i) => i % 2 === 0);
-  const right = items.filter((_, i) => i % 2 === 1);
+  // Colonnes et auto : piles indépendantes, les cartes s'enchaînent sans
+  // laisser de trou quand leurs hauteurs diffèrent.
+  const stacks: React.ReactNode[][] = Array.from({ length: columns }, () => []);
+  items.forEach((item, i) => stacks[i % columns].push(item));
   return (
     <View style={{ flexDirection: "row", gap, alignItems: "flex-start" }}>
-      <View style={{ flex: 1, minWidth: 0, gap }}>{left}</View>
-      <View style={{ flex: 1, minWidth: 0, gap }}>{right}</View>
+      {stacks.map((stack, i) => (
+        <View key={i} style={{ flex: 1, minWidth: 0, gap }}>
+          {stack}
+        </View>
+      ))}
     </View>
   );
 }
