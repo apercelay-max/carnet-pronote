@@ -196,7 +196,12 @@ function Widget({ id, grades, notebookData, timetable, assignments, evaluations,
   }
 
   if (id === "devoirsAVenir") {
-    const tous = assignments ?? [];
+    // `assignments` (prop) contient les devoirs Pronote (déjà triés par
+    // échéance) suivis des devoirs perso simplement ajoutés à la fin, sans
+    // tri global : sans ce tri, un devoir perso pour demain pouvait être
+    // exclu des 3 "à venir" par des devoirs Pronote plus lointains passés
+    // devant lui dans le tableau.
+    const tous = [...(assignments ?? [])].sort((a: any, b: any) => a.deadline.getTime() - b.deadline.getTime());
     const restants = tous.filter((a: any) => !a.done);
     const faits = tous.length - restants.length;
     const upcoming = restants.slice(0, 3);
