@@ -372,7 +372,13 @@ export default function ReglagesScreen() {
             onChange={setTabBarChoice}
             options={[
               { value: "style", label: "Du style", preview: <BarPreview treatment={STYLE_STRUCTURE[styleId].tabBar.treatment} /> },
-              { value: "liquid-glass", label: "Verre", preview: <BarPreview treatment="liquid-glass" /> },
+              // "Verre" (flou) reste réservé au style Forge, seul endroit de
+              // l'appli où le flou/transparence est toléré (règle produit) :
+              // ne pas le proposer sur les autres styles, où il n'aurait de
+              // toute façon aucun effet.
+              ...(styleId === "forge"
+                ? [{ value: "liquid-glass" as const, label: "Verre", preview: <BarPreview treatment="liquid-glass" /> }]
+                : []),
               { value: "floating-pill", label: "Pilule", preview: <BarPreview treatment="floating-pill" /> },
               { value: "bordered-panel", label: "Panneau", preview: <BarPreview treatment="bordered-panel" /> },
               { value: "solid-block", label: "Blocs", preview: <BarPreview treatment="solid-block" /> },
