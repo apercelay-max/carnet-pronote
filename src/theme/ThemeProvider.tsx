@@ -43,10 +43,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Forme des cartes et barre du bas choisies à part dans les Réglages :
     // elles priment sur celles du style, tout le reste du style est conservé.
     const base = STYLE_STRUCTURE[styleId];
+    // "liquid-glass" (flou) reste réservé au style Forge, où c'est le seul
+    // flou/transparence toléré dans l'appli (règle produit, régression de
+    // contraste passée) : un choix "Verre" persisté sur un autre style ne
+    // doit jamais s'appliquer, même si l'utilisateur l'a réglé pendant qu'il
+    // était sur Forge puis a changé de style ensuite.
+    const wantsGlassOutsideForge = tabBarChoice === "liquid-glass" && styleId !== "forge";
     const structure: StyleStructure = {
       ...base,
       card: cardShape === "style" ? base.card : { ...base.card, radius: CARD_SHAPE_RADIUS[cardShape] },
-      tabBar: tabBarChoice === "style" ? base.tabBar : { ...base.tabBar, treatment: tabBarChoice },
+      tabBar:
+        tabBarChoice === "style" || wantsGlassOutsideForge
+          ? base.tabBar
+          : { ...base.tabBar, treatment: tabBarChoice },
     };
     const accent = ACCENTS[accentKey];
     const scale = fontScaleKey === "sm" ? 0.92 : fontScaleKey === "lg" ? 1.12 : 1;
