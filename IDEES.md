@@ -1,0 +1,1 @@
+- 2026-09-19 — Pense-bête : plus de note vide à l'édition : enregistrer une modification vide est désormais bloqué (bouton grisé + garde dans le store).

@@ -160,9 +160,11 @@ export const useLocalItemsStore = create<LocalItemsState>()(
           schedulePush();
         },
         modifierPenseBete: (id, texte) => {
+          const t = texte.trim();
+          if (!t) return;
           set((s) => ({
             penseBetes: s.penseBetes.map((p) =>
-              p.id === id ? { ...p, texte: texte.trim(), updatedAt: Date.now() } : p
+              p.id === id ? { ...p, texte: t, updatedAt: Date.now() } : p
             ),
           }));
           schedulePush();

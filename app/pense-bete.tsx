@@ -89,7 +89,8 @@ export default function PenseBeteScreen() {
                           modifier(p.id, editText);
                           setEditId(null);
                         }}
-                        style={pill(theme, theme.colors.accent)}
+                        disabled={!editText.trim()}
+                        style={[pill(theme, theme.colors.accent), !editText.trim() && { opacity: 0.4 }]}
                       >
                         <T variant="caption" weight="semibold" style={{ color: "#0B0D12" }}>
                           Enregistrer
