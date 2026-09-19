@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Pressable, TextInput, ScrollView, Alert } from "react-native";
+import { View, Pressable, TextInput, ScrollView } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useDataStore } from "../../src/store/useDataStore";
@@ -18,6 +18,7 @@ import { allKnownSubjects } from "../../src/lib/subjects";
 import { formatShortDay } from "../../src/lib/format";
 import { useLocalItemsStore, type CreneauPerso } from "../../src/store/useLocalItemsStore";
 import { JOURS_SEMAINE, todayISODay } from "../../src/lib/persoItems";
+import { confirmer } from "../../src/lib/confirmer";
 
 function isoDay(d: Date): string {
   const p = (n: number) => String(n).padStart(2, "0");
@@ -104,17 +105,10 @@ export default function CreneauPersoScreen() {
 
   const confirmerSuppression = () => {
     if (!existant) return;
-    Alert.alert("Supprimer ce créneau ?", "Il disparaîtra de l'emploi du temps.", [
-      { text: "Annuler", style: "cancel" },
-      {
-        text: "Supprimer",
-        style: "destructive",
-        onPress: () => {
-          supprimer(existant.id);
-          revenir();
-        },
-      },
-    ]);
+    confirmer("Supprimer ce créneau ?", "Il disparaîtra de l'emploi du temps.", "Supprimer", () => {
+      supprimer(existant.id);
+      revenir();
+    });
   };
 
   return (

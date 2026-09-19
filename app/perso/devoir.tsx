@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Pressable, TextInput, ScrollView, Alert } from "react-native";
+import { View, Pressable, TextInput, ScrollView } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useDataStore } from "../../src/store/useDataStore";
@@ -16,6 +16,7 @@ import { allKnownSubjects } from "../../src/lib/subjects";
 import { formatShortDay } from "../../src/lib/format";
 import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
 import { todayISODay } from "../../src/lib/persoItems";
+import { confirmer } from "../../src/lib/confirmer";
 import { useAccountStore } from "../../src/store/useAccountStore";
 import { useGroupesStore } from "../../src/store/useGroupesStore";
 import { useDevoirsClasseStore } from "../../src/store/useDevoirsClasseStore";
@@ -125,17 +126,10 @@ export default function DevoirPersoScreen() {
 
   const confirmerSuppression = () => {
     if (!existant) return;
-    Alert.alert("Supprimer ce devoir ?", "Il ne réapparaîtra pas.", [
-      { text: "Annuler", style: "cancel" },
-      {
-        text: "Supprimer",
-        style: "destructive",
-        onPress: () => {
-          supprimer(existant.id);
-          revenir();
-        },
-      },
-    ]);
+    confirmer("Supprimer ce devoir ?", "Il ne réapparaîtra pas.", "Supprimer", () => {
+      supprimer(existant.id);
+      revenir();
+    });
   };
 
   return (

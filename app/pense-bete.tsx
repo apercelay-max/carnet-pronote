@@ -10,6 +10,7 @@ import { Button } from "../src/components/ui/Button";
 import { Eyebrow } from "../src/components/ui/Stats";
 import { useLocalItemsStore } from "../src/store/useLocalItemsStore";
 import { champStyle } from "../src/components/ui/champStyle";
+import { confirmer } from "../src/lib/confirmer";
 
 export default function PenseBeteScreen() {
   const theme = useTheme();
@@ -142,7 +143,11 @@ export default function PenseBeteScreen() {
                         </T>
                       </Pressable>
                       <Pressable
-                        onPress={() => supprimer(p.id)}
+                        onPress={() =>
+                          confirmer("Supprimer cette note ?", "Elle disparaîtra définitivement.", "Supprimer", () =>
+                            supprimer(p.id)
+                          )
+                        }
                         hitSlop={8}
                         style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
                       >

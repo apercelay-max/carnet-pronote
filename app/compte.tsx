@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Pressable, ScrollView, KeyboardAvoidingView, Platform, Alert } from "react-native";
+import { View, Pressable, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme } from "../src/theme/ThemeProvider";
@@ -14,6 +14,7 @@ import { SegmentedControl } from "../src/components/ui/SegmentedControl";
 import { MAX_CONTENT_WIDTH } from "../src/components/ui/Screen";
 import { MotionSequence } from "../src/components/ui/Motion";
 import { formatDayLabel, formatTime } from "../src/lib/format";
+import { confirmer } from "../src/lib/confirmer";
 
 type Mode = "connexion" | "creation";
 
@@ -56,13 +57,11 @@ export default function CompteScreen() {
   const peutValider = mail.trim().includes("@") && motDePasse.length >= 6 && !busy;
 
   function confirmerDeconnexion() {
-    Alert.alert(
+    confirmer(
       "Se déconnecter du compte Carnet ?",
       "Tes réglages et tes fiches restent sur cet appareil. Tu les retrouveras en te reconnectant.",
-      [
-        { text: "Annuler", style: "cancel" },
-        { text: "Se déconnecter", style: "destructive", onPress: () => seDeconnecter() },
-      ]
+      "Se déconnecter",
+      () => seDeconnecter()
     );
   }
 

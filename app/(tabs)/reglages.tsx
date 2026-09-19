@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Switch, Pressable, TextInput, Alert } from "react-native";
+import { View, Switch, Pressable, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSessionStore } from "../../src/store/useSessionStore";
@@ -22,6 +22,7 @@ import { ACCENTS, ACCENT_ORDER, SUBJECT_PALETTE, colorForSubject } from "../../s
 import { STYLE_ORDER, STYLE_META, STYLE_STRUCTURE } from "../../src/theme/styles";
 import { allKnownSubjects } from "../../src/lib/subjects";
 import { useLocalItemsStore } from "../../src/store/useLocalItemsStore";
+import { confirmer } from "../../src/lib/confirmer";
 import { Screen } from "../../src/components/ui/Screen";
 import { T } from "../../src/components/ui/Text";
 import { Card } from "../../src/components/ui/Card";
@@ -101,13 +102,11 @@ export default function ReglagesScreen() {
   const [codeDraft, setCodeDraft] = useState("");
 
   function confirmerDelier() {
-    Alert.alert(
+    confirmer(
       "Délier cet appareil ?",
       "Il garde tes pense-bêtes, devoirs et créneaux perso actuels, mais ne se synchronisera plus avec tes autres appareils.",
-      [
-        { text: "Annuler", style: "cancel" },
-        { text: "Délier", style: "destructive", onPress: () => delierSync() },
-      ]
+      "Délier",
+      () => delierSync()
     );
   }
 
@@ -146,10 +145,9 @@ export default function ReglagesScreen() {
   }
 
   function confirmLogout() {
-    Alert.alert("Se déconnecter ?", "Tu devras te reconnecter avec ton identifiant Pronote.", [
-      { text: "Annuler", style: "cancel" },
-      { text: "Se déconnecter", style: "destructive", onPress: () => logout() },
-    ]);
+    confirmer("Se déconnecter ?", "Tu devras te reconnecter avec ton identifiant Pronote.", "Se déconnecter", () =>
+      logout()
+    );
   }
 
   return (

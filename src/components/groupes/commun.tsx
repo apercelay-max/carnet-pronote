@@ -2,7 +2,7 @@
 // (app/groupes/*) et leurs onglets. Rangés ici et PAS sous app/ : tout
 // fichier placé dans app/ devient une route pour expo-router.
 import React, { useMemo } from "react";
-import { View, Pressable, ScrollView, TextInput, Alert, Platform, Share, RefreshControl } from "react-native";
+import { View, Pressable, ScrollView, TextInput, Platform, Share, RefreshControl } from "react-native";
 import { useTheme } from "../../theme/ThemeProvider";
 import { MAX_CONTENT_WIDTH } from "../ui/Screen";
 import { hexToRgba } from "../../theme/palette";
@@ -13,21 +13,7 @@ import { champStyle } from "../ui/champStyle";
 import { formatShortDay } from "../../lib/format";
 import { formaterCode, jourISO, lienInvitation, type Membre } from "../../lib/groupes";
 
-/**
- * Demande de confirmation qui marche AUSSI sur le web : `Alert.alert` avec
- * des boutons ne fait rien dans react-native-web, la suppression serait donc
- * impossible depuis Safari. On passe par `window.confirm` là-bas.
- */
-export function confirmer(titre: string, message: string, libelle: string, action: () => void) {
-  if (Platform.OS === "web") {
-    if (typeof window !== "undefined" && window.confirm(`${titre}\n\n${message}`)) action();
-    return;
-  }
-  Alert.alert(titre, message, [
-    { text: "Annuler", style: "cancel" },
-    { text: libelle, style: "destructive", onPress: action },
-  ]);
-}
+export { confirmer } from "../../lib/confirmer";
 
 /**
  * Partage l'invitation d'un groupe. Feuille de partage native si elle existe
