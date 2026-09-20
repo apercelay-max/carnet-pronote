@@ -57,6 +57,7 @@ export default function DevoirsScreen() {
   const devoirsManuels = useLocalItemsStore((s) => s.devoirsManuels);
   const toggleDevoirManuelFait = useLocalItemsStore((s) => s.toggleDevoirManuelFait);
   const [sortMode, setSortMode] = useState<SortMode>("date");
+  const [masquerFaits, setMasquerFaits] = useState(false);
   const userId = useAccountStore((s) => s.userId);
   const devoirsClasse = useDevoirsClasseStore((s) => s.items);
   const chargerDevoirsClasse = useDevoirsClasseStore((s) => s.charger);
@@ -111,9 +112,16 @@ export default function DevoirsScreen() {
     if (session && assignmentsPronote.length === 0) sync();
   }, [session]);
 
+  // Les devoirs faits peuvent être masqués pour ne garder que le reste à faire.
+  // Les stats du haut restent calculées sur la liste complète.
+  const visibles = useMemo(
+    () => (masquerFaits ? assignments.filter((a) => !a.done) : assignments),
+    [assignments, masquerFaits]
+  );
+
   const groups = useMemo(() => {
     const map = new Map<string, Assignment[]>();
-    for (const a of assignments) {
+    for (const a of visibles) {
       const key = a.deadline.toDateString();
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(a);
@@ -121,15 +129,15 @@ export default function DevoirsScreen() {
     return Array.from(map.entries()).sort(
       (a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime()
     );
-  }, [assignments]);
+  }, [visibles]);
 
   const byImportance = useMemo(() => {
-    const todo = assignments.filter((a) => !a.done);
-    const done = assignments.filter((a) => a.done);
+    const todo = visibles.filter((a) => !a.done);
+    const done = visibles.filter((a) => a.done);
     todo.sort((a, b) => importanceScore(b) - importanceScore(a));
     done.sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
     return [...todo, ...done];
-  }, [assignments]);
+  }, [visibles]);
 
   // Chiffres calculés uniquement sur ce que Pronote fournit vraiment :
   // la durée estimée n'est comptée que pour les devoirs qui en ont une.
@@ -231,13 +239,44 @@ export default function DevoirsScreen() {
               { value: "importance", label: "Par importance" },
             ]}
           />
+          {stats.faits > 0 ? (
+            <Pressable
+              onPress={() => setMasquerFaits((v) => !v)}
+              hitSlop={8}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: masquerFaits }}
+              accessibilityLabel="Masquer les devoirs faits"
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                alignSelf: "flex-start",
+                gap: 6,
+                marginTop: theme.spacing(3),
+              }}
+            >
+              <Icon
+                name={masquerFaits ? "eyeOff" : "eye"}
+                size={15}
+                color={masquerFaits ? theme.colors.accent : theme.colors.textTertiary}
+              />
+              <T
+                variant="caption"
+                weight="semibold"
+                style={{ color: masquerFaits ? theme.colors.accent : theme.colors.textTertiary }}
+              >
+                {masquerFaits
+                  ? `${stats.faits} fait${stats.faits > 1 ? "s" : ""} masqué${stats.faits > 1 ? "s" : ""}`
+                  : "Masquer les devoirs faits"}
+              </T>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
 
       {groups.length === 0 ? (
         <Card>
           <T variant="body" tone="secondary">
-            Rien à rendre pour l'instant.
+            {assignments.length > 0 ? "Tout est fait, bravo !" : "Rien à rendre pour l'instant."}
           </T>
         </Card>
       ) : sortMode === "importance" ? (
