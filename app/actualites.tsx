@@ -8,6 +8,7 @@ import { Screen } from "../src/components/ui/Screen";
 import { T } from "../src/components/ui/Text";
 import { Card } from "../src/components/ui/Card";
 import { Icon } from "../src/components/ui/Icon";
+import { Button } from "../src/components/ui/Button";
 import { Eyebrow, Chip } from "../src/components/ui/Stats";
 import { formatDayLabel } from "../src/lib/format";
 
@@ -34,6 +35,10 @@ export default function ActualitesScreen() {
 
   const nonLues = sorted.filter((i: any) => !i.read).length;
 
+  function toutMarquerLu() {
+    sorted.filter((i: any) => !i.read).forEach((i: any) => toggleNewsRead(session, i, true));
+  }
+
   function handleOpen(item: any) {
     const opening = openId !== item.id;
     setOpenId(opening ? item.id : null);
@@ -55,8 +60,17 @@ export default function ActualitesScreen() {
       </View>
 
       {nonLues > 0 ? (
-        <View style={{ marginBottom: theme.spacing(4) }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: theme.spacing(3),
+            marginBottom: theme.spacing(4),
+          }}
+        >
           <Chip color={theme.colors.accent} label={`${nonLues} non lue${nonLues > 1 ? "s" : ""}`} />
+          <Button label="Tout marquer comme lu" variant="secondary" icon="check" onPress={toutMarquerLu} />
         </View>
       ) : null}
 

@@ -1,2 +1,3 @@
+- 2026-09-21 — Actualités : « Tout marquer comme lu » : un bouton à côté du compteur de non lues marque toutes les actualités comme lues d'un seul geste.
 - 2026-09-20 — Devoirs : masquer les devoirs faits : un interrupteur sous le sélecteur de tri cache les devoirs cochés (les stats restent complètes) et affiche « Tout est fait, bravo ! » quand il ne reste rien.
 - 2026-09-19 — Pense-bête : plus de note vide à l'édition : enregistrer une modification vide est désormais bloqué (bouton grisé + garde dans le store).
