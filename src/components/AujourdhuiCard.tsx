@@ -10,6 +10,8 @@ import { useDevoirsClasseStore, devoirsClasseEnAssignments } from "../store/useD
 import { usePreferencesStore } from "../store/usePreferencesStore";
 import { devoirManuelToAssignment } from "../lib/persoItems";
 import { rappelsDuJour, semaineAVenir } from "../lib/rappels";
+import { nextSchoolDay } from "../lib/sacDeCours";
+import { objetsPourLeSac } from "../lib/devoirsIntelligents";
 import {
   demanderPermissionNotifications,
   notifierUneFoisParJour,
@@ -26,12 +28,12 @@ import { Eyebrow } from "./ui/Stats";
 // n'a de valeur que si quelqu'un rappelle de le suivre. Le vendredi soir et le
 // week-end, elle montre aussi la semaine qui arrive.
 
-const ICONES = { devoir: "homework", controle: "clock", revision: "sparkle" } as const;
+const ICONES = { devoir: "homework", controle: "clock", revision: "sparkle", sac: "backpack" } as const;
 
 export function AujourdhuiCard() {
   const theme = useTheme();
   const router = useRouter();
-  const { assignments, timetable } = useDataStore();
+  const { assignments, timetable, resources } = useDataStore();
   const devoirsManuels = useLocalItemsStore((s) => s.devoirsManuels);
   const fiches = useFichesStore((s) => s.fiches);
   const userId = useAccountStore((s) => s.userId);
@@ -53,7 +55,22 @@ export function AujourdhuiCard() {
     [assignments, devoirsManuels, devoirsClasse, userId]
   );
 
-  const rappels = useMemo(() => rappelsDuJour({ assignments: tous, timetable, fiches }), [tous, timetable, fiches]);
+  // Objets que les profs demandent d'apporter au prochain jour de cours.
+  const sac = useMemo(() => {
+    const prochain = nextSchoolDay(timetable);
+    if (!prochain) return null;
+    const objets = objetsPourLeSac(
+      tous,
+      prochain.date,
+      prochain.subjects.map((s) => s.name)
+    );
+    return { objets, jour: prochain.date };
+  }, [tous, timetable]);
+
+  const rappels = useMemo(
+    () => rappelsDuJour({ assignments: tous, timetable, fiches, resources, sac }),
+    [tous, timetable, fiches, resources, sac]
+  );
 
   const maintenant = new Date();
   const jour = maintenant.getDay();
@@ -73,6 +90,17 @@ export function AujourdhuiCard() {
       .join("\n");
     notifierUneFoisParJour("recap", `Carnet — ${rappels.length} chose${rappels.length > 1 ? "s" : ""} pour aujourd'hui`, corps);
   }, [permission, rappels]);
+
+  // Rappel ciblé : ce qu'il faut mettre dans le sac, le soir (18h), plutôt
+  // qu'un récapitulatif générique — une fois par jour, comme l'autre.
+  useEffect(() => {
+    if (permission !== "granted" || !sac || sac.objets.length === 0 || new Date().getHours() < 18) return;
+    notifierUneFoisParJour(
+      "sac",
+      "Carnet — Dans ton sac demain",
+      sac.objets.map((o) => `• ${o.objet} (${o.matiere})`).join("\n")
+    );
+  }, [permission, sac]);
 
   if (rappels.length === 0 && !semaine) return null;
 
@@ -116,9 +144,16 @@ export function AujourdhuiCard() {
                   <T variant="body" weight="semibold" numberOfLines={1}>
                     {r.titre}
                   </T>
-                  <T variant="caption" tone="secondary" numberOfLines={3} style={{ lineHeight: 18 }}>
+                  <T variant="caption" tone="secondary" numberOfLines={r.type === "devoir" ? 6 : 3} style={{ lineHeight: 18 }}>
                     {r.detail}
                   </T>
+                  {r.action ? (
+                    <Pressable onPress={() => router.push(r.action!.lien as any)} hitSlop={6}>
+                      <T variant="caption" weight="semibold" style={{ color: theme.colors.accent }}>
+                        {r.action.label} →
+                      </T>
+                    </Pressable>
+                  ) : null}
                 </View>
                 <Icon name="chevronRight" size={14} color={theme.colors.textTertiary} />
               </Pressable>

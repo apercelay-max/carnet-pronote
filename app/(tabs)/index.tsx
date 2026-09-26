@@ -17,6 +17,9 @@ import { Eyebrow, BigStat, StatTile, StatRow, Bar } from "../../src/components/u
 import { colorForSubject } from "../../src/theme/palette";
 import { formatGradeValue, formatTime, gradeOn20, formatDayLabel } from "../../src/lib/format";
 import { nextSchoolDay } from "../../src/lib/sacDeCours";
+import { objetsPourLeSac } from "../../src/lib/devoirsIntelligents";
+import { useDevoirsClasseStore, devoirsClasseEnAssignments } from "../../src/store/useDevoirsClasseStore";
+import { useAccountStore } from "../../src/store/useAccountStore";
 import { AujourdhuiCard } from "../../src/components/AujourdhuiCard";
 import { GradeValue } from "pawnote";
 
@@ -416,7 +419,7 @@ function Widget({ id, grades, notebookData, timetable, assignments, evaluations,
   }
 
   if (id === "sacDeCours") {
-    return <SacDeCoursWidget timetable={timetable} subjectColors={subjectColors} />;
+    return <SacDeCoursWidget timetable={timetable} subjectColors={subjectColors} assignments={assignments} />;
   }
 
   if (id === "competences") {
@@ -486,13 +489,31 @@ function PenseBeteWidget({ penseBetes }: { penseBetes: { id: string; texte: stri
   );
 }
 
-function SacDeCoursWidget({ timetable, subjectColors }: any) {
+function SacDeCoursWidget({ timetable, subjectColors, assignments }: any) {
   const theme = useTheme();
   const router = useRouter();
   const subjectMaterials = usePreferencesStore((s) => s.subjectMaterials);
   const next = useMemo(() => nextSchoolDay(timetable), [timetable]);
+  const userId = useAccountStore((s) => s.userId);
+  const devoirsClasse = useDevoirsClasseStore((s) => s.items);
+
+  // Objets demandés par les profs dans le texte des devoirs (« apporter la
+  // calculatrice… ») : ils s'ajoutent au matériel habituel de la matière.
+  const demandes = useMemo(
+    () =>
+      next
+        ? objetsPourLeSac(
+            [...(assignments ?? []), ...devoirsClasseEnAssignments(devoirsClasse, userId)],
+            next.date,
+            next.subjects.map((s) => s.name)
+          )
+        : [],
+    [next, assignments, devoirsClasse, userId]
+  );
   const missingCount = next
-    ? next.subjects.filter((s) => !(subjectMaterials[s.name]?.length)).length
+    ? next.subjects.filter(
+        (s) => !(subjectMaterials[s.name]?.length) && !demandes.some((d) => d.matiere === s.name)
+      ).length
     : 0;
 
   return (
@@ -515,6 +536,7 @@ function SacDeCoursWidget({ timetable, subjectColors }: any) {
         <View style={{ gap: theme.spacing(3) }}>
           {next.subjects.map((s) => {
             const items = subjectMaterials[s.name] ?? [];
+            const demandesMatiere = demandes.filter((d) => d.matiere === s.name);
             return (
               <View key={s.id} style={{ flexDirection: "row", gap: theme.spacing(3) }}>
                 <View
@@ -534,11 +556,19 @@ function SacDeCoursWidget({ timetable, subjectColors }: any) {
                     <T variant="caption" tone="secondary" numberOfLines={2}>
                       {items.join(" · ")}
                     </T>
-                  ) : (
+                  ) : demandesMatiere.length === 0 ? (
                     <T variant="caption" tone="tertiary">
                       Pas encore configuré
                     </T>
-                  )}
+                  ) : null}
+                  {demandesMatiere.length > 0 ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+                      <Icon name="bell" size={12} color={theme.colors.warning} />
+                      <T variant="caption" weight="semibold" style={{ color: theme.colors.warning, flex: 1 }}>
+                        Demandé : {demandesMatiere.map((d) => d.objet).join(", ")}
+                      </T>
+                    </View>
+                  ) : null}
                 </View>
               </View>
             );

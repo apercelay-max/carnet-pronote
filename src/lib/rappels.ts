@@ -6,16 +6,21 @@
 //  - les tâches du plan de révision Gemini prévues pour aujourd'hui.
 // Rien n'est inventé : sans données, pas de rappel.
 
+import type { Resource } from "pawnote";
 import type { Fiche } from "../store/useFichesStore";
+import { analyserDevoir, controleLie, joursEntre as joursEntreDevoirs, type ObjetSac } from "./devoirsIntelligents";
+import { ficheLiee, trouverLecon } from "./leconDevoir";
 
 export type Rappel = {
   id: string;
-  type: "devoir" | "controle" | "revision";
+  type: "devoir" | "controle" | "revision" | "sac";
   titre: string;
   detail: string;
   lien: string;
   urgent: boolean;
   matiere?: string;
+  /** Raccourci sous le rappel (« Ouvrir ma fiche », « Réviser »…), en plus du lien principal. */
+  action?: { label: string; lien: string };
 };
 
 const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
@@ -56,6 +61,10 @@ export function rappelsDuJour(input: {
   assignments: any[];
   timetable: any;
   fiches: Fiche[];
+  /** Cahier de textes : sert à montrer la leçon à copier directement dans le rappel. */
+  resources?: Resource[];
+  /** Objets à mettre dans le sac pour le prochain jour de cours, et ce jour. */
+  sac?: { objets: ObjetSac[]; jour: Date } | null;
   maintenant?: Date;
 }): Rappel[] {
   const maintenant = input.maintenant ?? new Date();
@@ -96,22 +105,53 @@ export function rappelsDuJour(input: {
     .forEach((a) => {
       const j = joursEntre(maintenant, a.deadline);
       if (j < 0 || j > 1) return;
+      const texte = String(a.description ?? "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const analyse = analyserDevoir(a.description, a.length);
+      const quand = j === 0 ? "Pour aujourd'hui" : "Pour demain";
+      let detail = `${quand} — ${texte.slice(0, 120)}`;
+      let action: Rappel["action"];
+
+      // « Copier la leçon » : on met la leçon sous les yeux, pas juste la consigne.
+      if (analyse.copierLecon) {
+        const lecon = trouverLecon(a.subject?.name, analyse.leconCitee, input.resources ?? [], maintenant);
+        if (lecon) {
+          detail = `${quand} — Copier « ${lecon.titre} »${lecon.texte ? ` : ${lecon.texte.slice(0, 220)}` : ""}`;
+        }
+      }
+      if (analyse.types.includes("lecon")) {
+        const fiche = ficheLiee(a.subject?.name, analyse.leconCitee, input.fiches);
+        if (fiche) action = { label: "Ouvrir ma fiche", lien: `/fiche/${fiche.id}` };
+        else if (controleLie(a.subject?.name, input.timetable, maintenant))
+          action = { label: "Réviser pour le contrôle", lien: "/revision/controles" };
+      }
       rappels.push({
         id: `devoir:${a.id}`,
         type: "devoir",
         titre: a.subject?.name ?? "Devoir",
-        detail: `${j === 0 ? "Pour aujourd'hui" : "Pour demain"} — ${String(a.description ?? "")
-          .replace(/<[^>]+>/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .slice(0, 120)}`,
+        detail,
         lien: "/devoirs",
         urgent: true,
         matiere: a.subject?.name,
+        action,
       });
     });
 
-  const ordre = { controle: 0, devoir: 1, revision: 2 } as const;
+  if (input.sac && input.sac.objets.length > 0 && joursEntreDevoirs(maintenant, input.sac.jour) <= 3) {
+    const j = joursEntreDevoirs(maintenant, input.sac.jour);
+    rappels.push({
+      id: "sac",
+      type: "sac",
+      titre: j === 1 ? "À mettre dans le sac pour demain" : `À mettre dans le sac pour ${JOURS[input.sac.jour.getDay()]}`,
+      detail: input.sac.objets.map((o) => `${o.objet} (${o.matiere})`).join(" · "),
+      lien: "/",
+      urgent: false,
+    });
+  }
+
+  const ordre = { controle: 0, sac: 1, devoir: 2, revision: 3 } as const;
   return rappels.sort((a, b) => ordre[a.type] - ordre[b.type]);
 }
 

@@ -11,6 +11,7 @@ import { useMotionStore } from "../src/store/useMotionStore";
 import { stackAnimationFor } from "../src/lib/motion";
 import { CelebrationLayer } from "../src/components/ui/Celebration";
 import { useAccountStore } from "../src/store/useAccountStore";
+import { NouveautesModal } from "../src/components/NouveautesModal";
 
 export default function RootLayout() {
   return (
@@ -78,6 +79,8 @@ function RootNavigator() {
       {/* Montée une seule fois, au-dessus de tout : les confettis doivent
           pouvoir tomber par-dessus n'importe quel écran. */}
       <CelebrationLayer />
+      {/* Seulement une fois connecté : pas de « quoi de neuf » par-dessus l'écran de connexion. */}
+      {status === "authenticated" ? <NouveautesModal /> : null}
     </>
   );
 }

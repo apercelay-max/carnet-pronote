@@ -32,6 +32,7 @@ import { SegmentedControl } from "../../src/components/ui/SegmentedControl";
 import { SwatchPicker } from "../../src/components/ui/SwatchPicker";
 import { MotionSettings } from "../../src/components/ui/MotionSettings";
 import { useAccountStore } from "../../src/store/useAccountStore";
+import { useNouveautesStore } from "../../src/store/useNouveautesStore";
 
 export default function ReglagesScreen() {
   const theme = useTheme();
@@ -711,6 +712,19 @@ export default function ReglagesScreen() {
             ) : null}
           </View>
         )}
+      </Card>
+
+      <SectionTitle icon="sparkle" title="Nouveautés" />
+      <Card style={{ marginBottom: theme.spacing(6) }}>
+        <T variant="caption" tone="secondary" style={{ marginBottom: theme.spacing(3) }}>
+          Ce qui a changé dans l'appli ; la fenêtre s'ouvre aussi toute seule après une mise à jour.
+        </T>
+        <Button
+          label="Voir les nouveautés"
+          variant="secondary"
+          icon="sparkle"
+          onPress={() => useNouveautesStore.getState().ouvrirManuellement()}
+        />
       </Card>
 
       <SectionTitle icon="backpack" title="Sac de cours" />
