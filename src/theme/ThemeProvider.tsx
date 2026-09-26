@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { useColorScheme } from "react-native";
-import { ACCENTS, hexToRgba } from "./palette";
+import { ACCENTS, accentSoft, hexToRgba, onAccent, resolveAccent } from "./palette";
 import { STYLE_PALETTES, STYLE_STRUCTURE, StyleId, StyleNeutrals, StyleStructure } from "./styles";
 import { usePreferencesStore, CARD_SHAPE_RADIUS } from "../store/usePreferencesStore";
 
 export type Theme = {
   isDark: boolean;
   styleId: StyleId;
-  colors: StyleNeutrals & { accent: string; accentSoft: string; accentGlass: string };
+  colors: StyleNeutrals & { accent: string; accentSoft: string; accentGlass: string; onAccent: string };
   // Jetons structurels du style choisi (traitement des cartes, de la barre du
   // bas, typo, couleur "signal" décorative) — voir src/theme/styles.ts.
   structure: StyleStructure;
@@ -35,7 +35,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const cardShape = usePreferencesStore((s) => s.cardShape);
   const tabBarChoice = usePreferencesStore((s) => s.tabBarChoice);
 
-  const isDark = themeMode === "system" ? system !== "light" : themeMode === "dark";
+  // Sport pro est toujours sombre, quel que soit le réglage clair/sombre.
+  const isDark = styleId === "sport" || (themeMode === "system" ? system !== "light" : themeMode === "dark");
 
   const theme = useMemo<Theme>(() => {
     const palette = STYLE_PALETTES[styleId];
@@ -48,7 +49,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       card: cardShape === "style" ? base.card : { ...base.card, radius: CARD_SHAPE_RADIUS[cardShape] },
       tabBar: tabBarChoice === "style" ? base.tabBar : { ...base.tabBar, treatment: tabBarChoice },
     };
-    const accent = ACCENTS[accentKey];
+    const accent = ACCENTS[resolveAccent(accentKey)];
     const scale = fontScaleKey === "sm" ? 0.92 : fontScaleKey === "lg" ? 1.12 : 1;
 
     return {
@@ -57,7 +58,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       colors: {
         ...neutrals,
         accent: accent.value,
-        accentSoft: accent.soft,
+        accentSoft: accentSoft(accent.value, isDark),
+        onAccent: onAccent(accent.value),
         accentGlass: hexToRgba(accent.value, isDark ? 0.22 : 0.16),
       },
       structure,

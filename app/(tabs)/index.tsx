@@ -718,7 +718,7 @@ function UnreadBadge({ count }: { count: number }) {
         justifyContent: "center",
       }}
     >
-      <T variant="caption" weight="semibold" style={{ color: "#0B0D12", fontSize: 11 }}>
+      <T variant="caption" weight="semibold" style={{ color: theme.colors.onAccent, fontSize: 11 }}>
         {count}
       </T>
     </View>

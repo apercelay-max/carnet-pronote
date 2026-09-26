@@ -243,12 +243,18 @@ type PreferencesState = {
   dismissTabBarCrowded: (signature: string) => void;
 };
 
+function migrateStyleId(persisted: string | undefined, fallback: StyleId): StyleId {
+  if (!persisted) return fallback;
+  if (["nouveau", "classique", "sport", "epure"].includes(persisted)) return persisted as StyleId;
+  return persisted === "forge" ? "classique" : "nouveau";
+}
+
 export const usePreferencesStore = create<PreferencesState>()(
   persist(
     (set) => ({
       themeMode: "system",
-      styleId: "forge",
-      accent: "ciel",
+      styleId: "nouveau",
+      accent: "bleu",
       fontScale: "md",
       subjectColors: {},
       subjectMaterials: {},
@@ -364,11 +370,9 @@ export const usePreferencesStore = create<PreferencesState>()(
         hiddenTabs: (persisted as any)?.hiddenTabs ?? current.hiddenTabs,
         tabLabels: (persisted as any)?.tabLabels ?? current.tabLabels,
         tabIcons: (persisted as any)?.tabIcons ?? current.tabIcons,
-        // Les personnes qui avaient déjà l'app avant l'ajout des styles
-        // n'ont pas styleId dans leur storage persistant -> Forge par défaut
-        // (le style par défaut de l'app depuis la refonte de la présentation
-        // des données). Celles qui en avaient choisi un gardent le leur.
-        styleId: (persisted as any)?.styleId ?? current.styleId,
+        // Anciens styles (forge, aurora, métro…) remplacés par les 4 de PPL :
+        // forge devient classique, les autres retombent sur nouveau.
+        styleId: migrateStyleId((persisted as any)?.styleId, current.styleId),
         widgetOrder: backfillWidgetOrder((persisted as any)?.widgetOrder),
         // Les personnes qui avaient déjà l'app avant l'ajout du sac de cours
         // n'ont pas subjectMaterials dans leur storage persistant -> objet vide.

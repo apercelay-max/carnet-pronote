@@ -235,14 +235,14 @@ export default function TimetableScreen() {
                   <T
                     variant="caption"
                     weight="semibold"
-                    style={{ color: active ? "#0B0D12" : theme.colors.textTertiary }}
+                    style={{ color: active ? theme.colors.onAccent : theme.colors.textTertiary }}
                   >
                     {formatDayOfWeekLetter(d)}
                   </T>
                   <T
                     variant="body"
                     weight="semibold"
-                    style={{ color: active ? "#0B0D12" : isToday ? theme.colors.accent : theme.colors.textPrimary }}
+                    style={{ color: active ? theme.colors.onAccent : isToday ? theme.colors.accent : theme.colors.textPrimary }}
                   >
                     {d.getDate()}
                   </T>

@@ -23,16 +23,16 @@ export function Button({ label, onPress, variant = "primary", disabled, loading,
   const theme = useTheme();
   const press = usePressMotion(!disabled && !loading);
 
-  // Forge reprend le dégradé de marque de PPL sur le bouton principal. Les
+  // Classique reprend le dégradé de marque de PPL sur le bouton principal. Les
   // autres styles gardent l'accent plein choisi par la personne : un dégradé
-  // rouge/violet imposé jurerait avec Métro, Pop ou Ardoise.
-  const useGradient = variant === "primary" && theme.styleId === "forge";
+  // rouge/violet imposé jurerait avec les autres styles.
+  const useGradient = variant === "primary" && theme.styleId === "classique";
 
   const bg =
     variant === "primary" ? theme.colors.accent : variant === "secondary" ? theme.colors.surfaceElevated : "transparent";
   // Texte blanc sur le dégradé : le gris très sombre habituel devient
   // illisible sur du rouge saturé.
-  const textColor = useGradient ? "#FFFFFF" : variant === "primary" ? "#0B0D12" : theme.colors.textPrimary;
+  const textColor = useGradient ? "#FFFFFF" : variant === "primary" ? theme.colors.onAccent : theme.colors.textPrimary;
   const borderColor = variant === "secondary" ? theme.colors.border : "transparent";
 
   return (

@@ -1,37 +1,58 @@
 // Palette de base — pensée dark-first (comme UniTools) mais avec un vrai mode clair.
 // Tout le système de personnalisation (thème, accent, couleurs de matières) part de ce fichier.
 
-export type AccentKey =
-  | "ciel"
-  | "indigo"
-  | "violet"
-  | "rose"
-  | "corail"
-  | "ambre"
-  | "menthe"
-  | "graphite";
+// Préréglages repris de PPL : 6 couleurs classiques + les couleurs officielles
+// de plusieurs enseignes de sport (relevées sur leurs sites).
+export const ACCENTS = {
+  rouge: { label: "Rouge", value: "#E03030" },
+  bleu: { label: "Bleu", value: "#2563EB" },
+  vert: { label: "Vert", value: "#16A34A" },
+  orange: { label: "Orange", value: "#EA580C" },
+  violet: { label: "Violet", value: "#9333EA" },
+  cyan: { label: "Cyan", value: "#0891B2" },
+  "gym-basicfit": { label: "Basic-Fit", value: "#FF8712" },
+  "gym-fitnesspark": { label: "Fitness Park", value: "#FFD600" },
+  "gym-orangebleue": { label: "L'Orange Bleue", value: "#F36C21" },
+  "gym-keepcool": { label: "Keepcool", value: "#66CC99" },
+  "gym-neoness": { label: "Neoness", value: "#D71730" },
+  "gym-libertygym": { label: "Liberty GYM", value: "#83BE00" },
+  "gym-johnreed": { label: "John Reed", value: "#F0077B" },
+  "gym-gigafit": { label: "GIGAFIT", value: "#C9A227" },
+  "gym-magicform": { label: "Magic Form", value: "#CE2329" },
+} as const;
 
-export const ACCENTS: Record<AccentKey, { label: string; value: string; soft: string }> = {
-  ciel: { label: "Ciel", value: "#4FA6FF", soft: "#1B2A3D" },
-  indigo: { label: "Indigo", value: "#6C7BFF", soft: "#221F3D" },
-  violet: { label: "Violet", value: "#B26CFF", soft: "#291F3D" },
-  rose: { label: "Rose", value: "#FF5FA8", soft: "#3A1F2E" },
-  corail: { label: "Corail", value: "#FF6B57", soft: "#3A231E" },
-  ambre: { label: "Ambre", value: "#FFB020", soft: "#3A2C14" },
-  menthe: { label: "Menthe", value: "#2DD4A7", soft: "#14332B" },
-  graphite: { label: "Graphite", value: "#9AA0AE", soft: "#22242B" },
-};
+export type AccentKey = keyof typeof ACCENTS;
 
-export const ACCENT_ORDER: AccentKey[] = [
-  "ciel",
-  "indigo",
-  "violet",
-  "rose",
-  "corail",
-  "ambre",
-  "menthe",
-  "graphite",
-];
+export const ACCENT_ORDER = Object.keys(ACCENTS) as AccentKey[];
+
+export const DEFAULT_ACCENT: AccentKey = "bleu";
+
+// Ancien identifiant persisté (ciel, indigo…) → on retombe sur le défaut.
+export function resolveAccent(key: string): AccentKey {
+  return key in ACCENTS ? (key as AccentKey) : DEFAULT_ACCENT;
+}
+
+// Teinte sombre de l'accent, pour les fonds "sélectionné".
+export function accentSoft(hex: string, isDark: boolean): string {
+  const { r, g, b } = rgb(hex);
+  const base = isDark ? 20 : 255;
+  const t = isDark ? 0.22 : 0.14;
+  const mix = (c: number) => Math.round(base + (c - base) * t);
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
+// Couleur de texte lisible posée sur l'accent plein.
+export function onAccent(hex: string): string {
+  const { r, g, b } = rgb(hex);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.6 ? "#0B0D12" : "#FFFFFF";
+}
+
+function rgb(hex: string) {
+  const clean = hex.replace("#", "");
+  const v = parseInt(clean, 16);
+  return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
+}
 
 // Palette déterministe pour les matières (si l'utilisateur ne les recolore pas à la main).
 export const SUBJECT_PALETTE = [

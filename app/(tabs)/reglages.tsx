@@ -83,8 +83,8 @@ export default function ReglagesScreen() {
   const setTabBubbleAction = usePreferencesStore((s) => s.setTabBubbleAction);
 
   // Le choix "épinglé dans la barre / rangé dans le +" n'a de sens visuel
-  // que pour le traitement liquid-glass (Forge) — les 8 autres styles
-  // affichent toujours tous les onglets visibles côte à côte, sans tiroir.
+  // que pour le traitement liquid-glass — tous les styles de PPL l'utilisent
+  // par défaut, mais les autres barres du bas restent choisissables.
   const hasOverflowTabBar = theme.structure.tabBar.treatment === "liquid-glass";
 
   const [iconPickerTab, setIconPickerTab] = useState<TabId | null>(null);
@@ -214,7 +214,7 @@ export default function ReglagesScreen() {
       <Card style={{ marginBottom: theme.spacing(6) }}>
         <T variant="caption" tone="secondary" style={{ marginBottom: theme.spacing(3) }}>
           Change complètement l'habillage de l'appli — formes, cartes, barre du bas. Chaque style
-          existe en clair et en sombre, indépendamment du réglage Thème ci-dessous.
+          existe en clair et en sombre, sauf Sport pro qui reste toujours sombre.
         </T>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing(3) }}>
           {STYLE_ORDER.map((id) => {
@@ -699,7 +699,7 @@ export default function ReglagesScreen() {
                   backgroundColor: codeDraft.length < 4 ? theme.colors.surfaceElevated : theme.colors.accent,
                 }}
               >
-                <T variant="caption" weight="semibold" style={{ color: codeDraft.length < 4 ? theme.colors.textTertiary : "#0B0D12" }}>
+                <T variant="caption" weight="semibold" style={{ color: codeDraft.length < 4 ? theme.colors.textTertiary : theme.colors.onAccent }}>
                   Lier
                 </T>
               </Pressable>
@@ -813,7 +813,7 @@ export default function ReglagesScreen() {
                             backgroundColor: theme.colors.accent,
                           }}
                         >
-                          <Icon name="plus" size={16} color="#0B0D12" />
+                          <Icon name="plus" size={16} color={theme.colors.onAccent} />
                         </Pressable>
                       </View>
                     </View>

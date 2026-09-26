@@ -490,7 +490,7 @@ function Composeur({
             <Icon
               name="chevronUp"
               size={20}
-              color={peutEnvoyer ? "#0B0D12" : theme.colors.textTertiary}
+              color={peutEnvoyer ? theme.colors.onAccent : theme.colors.textTertiary}
             />
           )}
         </Pressable>

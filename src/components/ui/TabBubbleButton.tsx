@@ -19,9 +19,9 @@ export function TabBubbleButton({ style }: { style?: StyleProp<ViewStyle> }) {
   const actionId = usePreferencesStore((s) => s.tabBubbleAction);
   const action = TAB_BUBBLE_ACTIONS[actionId];
   const accent = theme.colors.accent;
-  // Forge garde son dégradé rouge → violet de PPL ; les autres styles
+  // Classique garde son dégradé rouge → violet de PPL ; les autres styles
   // prennent la couleur d'accent choisie, pleine (le reflet fait le relief).
-  const colors: [string, string] = theme.styleId === "forge" ? FORGE_GRADIENT : [accent, accent];
+  const colors: [string, string] = theme.styleId === "classique" ? FORGE_GRADIENT : [accent, accent];
 
   const scale = useSharedValue(1);
   const bounce = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));

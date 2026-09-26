@@ -33,7 +33,7 @@ export function SwatchPicker({ swatches, selected, onSelect, size = 34 }: Props)
                 shadowRadius: 4,
               }}
             >
-              {active ? <Icon name="check" size={size * 0.45} color="#0B0D12" /> : null}
+              {active ? <Icon name="check" size={size * 0.45} color="#FFFFFF" /> : null}
             </View>
           </Pressable>
         );
