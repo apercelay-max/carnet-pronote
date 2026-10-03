@@ -51,3 +51,18 @@ export function formatTime(date: Date): string {
 export function formatDayOfWeekLetter(date: Date): string {
   return format(date, "EEEEEE", { locale: fr }).toUpperCase();
 }
+
+// Pronote ne renvoie pas toujours la moyenne générale (début de période, relevé
+// sans moyenne). On se rabat alors sur la moyenne des moyennes de matières,
+// puis sur celle des notes, plutôt que d'afficher un tiret.
+export function moyenneGenerale(
+  grades?: { overallAverage?: GradeValue; subjectsAverages?: readonly { student?: GradeValue }[]; grades?: readonly { value: GradeValue; outOf: GradeValue }[] } | null
+): { value: number; estimee: boolean } | null {
+  const o = grades?.overallAverage;
+  if (o && o.kind === GradeKind.Grade && Number.isFinite(o.points)) return { value: o.points, estimee: false };
+  const moy = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+  const m = moy((grades?.subjectsAverages ?? []).map((s) => gradeOn20(s.student)).filter((v): v is number => v !== null));
+  if (m !== null) return { value: m, estimee: true };
+  const n = moy((grades?.grades ?? []).map((g) => gradeOn20(g.value, g.outOf)).filter((v): v is number => v !== null));
+  return n !== null ? { value: n, estimee: true } : null;
+}

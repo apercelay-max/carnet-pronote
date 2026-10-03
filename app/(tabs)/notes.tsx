@@ -21,7 +21,7 @@ import {
   BarreMatiere,
 } from "../../src/components/ui/Stats";
 import { colorForSubject } from "../../src/theme/palette";
-import { formatGradeValue, formatDayLabel, gradeOn20 } from "../../src/lib/format";
+import { formatGradeValue, formatDayLabel, gradeOn20, moyenneGenerale } from "../../src/lib/format";
 
 export default function NotesScreen() {
   const theme = useTheme();
@@ -54,9 +54,9 @@ export default function NotesScreen() {
       .map((g) => gradeOn20(g.value, g.outOf))
       .filter((v): v is number => v !== null);
 
-    const mine = grades?.overallAverage;
+    const gen = moyenneGenerale(grades);
     const klass = grades?.classAverage;
-    const mineNum = mine && mine.kind === GradeKind.Grade ? mine.points : null;
+    const mineNum = gen ? gen.value : null;
     const klassNum = klass && klass.kind === GradeKind.Grade ? klass.points : null;
 
     return {
@@ -108,7 +108,7 @@ export default function NotesScreen() {
         <Eyebrow color={theme.colors.accent}>Moyenne générale</Eyebrow>
         <View style={{ marginTop: 8, marginBottom: 14 }}>
           <BigStat
-            value={formatGradeValue(grades?.overallAverage)}
+            value={stats.mineNum !== null ? stats.mineNum.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) : "—"}
             unit="/ 20"
             delta={stats.delta}
             deltaLabel="vs classe"

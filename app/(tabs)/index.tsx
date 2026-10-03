@@ -15,7 +15,7 @@ import { Icon } from "../../src/components/ui/Icon";
 import { ProgressRing } from "../../src/components/ui/ProgressRing";
 import { Eyebrow, BigStat, StatTile, StatRow, Bar } from "../../src/components/ui/Stats";
 import { colorForSubject } from "../../src/theme/palette";
-import { formatGradeValue, formatTime, gradeOn20, formatDayLabel } from "../../src/lib/format";
+import { formatGradeValue, formatTime, gradeOn20, formatDayLabel, moyenneGenerale } from "../../src/lib/format";
 import { nextSchoolDay } from "../../src/lib/sacDeCours";
 import { objetsPourLeSac } from "../../src/lib/devoirsIntelligents";
 import { useDevoirsClasseStore, devoirsClasseEnAssignments } from "../../src/store/useDevoirsClasseStore";
@@ -201,9 +201,9 @@ function Widget({ id, grades, notebookData, timetable, assignments, evaluations,
   if (id === "moyenneGenerale") {
     // Meme presentation que l'ecran Notes : le chiffre porte la carte, l'ecart
     // avec la classe est une puce, le reste passe en tuiles.
-    const overall = grades?.overallAverage as GradeValue | undefined;
     const klass = grades?.classAverage as GradeValue | undefined;
-    const mineNum = overall && overall.kind === 0 ? overall.points : null;
+    const gen = moyenneGenerale(grades);
+    const mineNum = gen ? gen.value : null;
     const klassNum = klass && klass.kind === 0 ? klass.points : null;
     const ecart = mineNum !== null && klassNum !== null ? mineNum - klassNum : null;
     const nbNotes = (grades?.grades ?? []).length;
@@ -213,7 +213,7 @@ function Widget({ id, grades, notebookData, timetable, assignments, evaluations,
       <Card elevated>
         <Eyebrow color={theme.colors.accent}>Moyenne générale</Eyebrow>
         <View style={{ marginTop: 8, marginBottom: 12 }}>
-          <BigStat value={formatGradeValue(overall)} unit="/ 20" delta={ecart} deltaLabel="vs classe" />
+          <BigStat value={mineNum !== null ? mineNum.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) : "—"} unit="/ 20" delta={ecart} deltaLabel="vs classe" />
         </View>
         <View style={{ marginBottom: 12 }}>
           <Bar value={mineNum !== null ? mineNum / 20 : 0} color={theme.colors.accent} />
