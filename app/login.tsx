@@ -9,6 +9,8 @@ import { Icon } from "../src/components/ui/Icon";
 import { Card } from "../src/components/ui/Card";
 import { MAX_CONTENT_WIDTH } from "../src/components/ui/Screen";
 
+const PRONOTE_URL = "https://1340008f.index-education.net/Pronote/eleve.html";
+
 export default function LoginScreen() {
   const theme = useTheme();
   const login = useSessionStore((s) => s.login);
@@ -17,16 +19,15 @@ export default function LoginScreen() {
   const error = useSessionStore((s) => s.error);
   const clearError = useSessionStore((s) => s.clearError);
 
-  const [url, setUrl] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  const canSubmit = url.trim().length > 3 && username.trim().length > 0 && password.length > 0;
+  const canSubmit = username.trim().length > 0 && password.length > 0;
 
   async function handleSubmit() {
     if (!canSubmit || isBusy) return;
     clearError();
-    await login(url.trim(), username.trim(), password);
+    await login(PRONOTE_URL, username.trim(), password);
   }
 
   return (
@@ -68,16 +69,6 @@ export default function LoginScreen() {
 
         <View style={{ gap: theme.spacing(4) }}>
           <TextField
-            label="Adresse de ton Pronote"
-            icon="school"
-            placeholder="https://0000000a.index-education.net/pronote/eleve.html"
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            value={url}
-            onChangeText={setUrl}
-          />
-          <TextField
             label="Identifiant"
             icon="user"
             autoCapitalize="none"
@@ -111,8 +102,7 @@ export default function LoginScreen() {
         </View>
 
         <T variant="caption" tone="tertiary" style={{ marginTop: theme.spacing(8), textAlign: "center" }}>
-          L'adresse se trouve dans la barre du navigateur quand tu es sur la page de connexion de ton
-          établissement. Tes identifiants restent uniquement sur ton téléphone.
+          Tes identifiants restent uniquement sur ton téléphone.
         </T>
         </View>
       </ScrollView>
