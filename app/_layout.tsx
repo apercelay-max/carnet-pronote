@@ -1,5 +1,5 @@
 import "react-native-gesture-handler";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -12,6 +12,10 @@ import { stackAnimationFor } from "../src/lib/motion";
 import { CelebrationLayer } from "../src/components/ui/Celebration";
 import { useAccountStore } from "../src/store/useAccountStore";
 import { NouveautesModal } from "../src/components/NouveautesModal";
+import { SplashBonjour, premierPrenom } from "../src/components/SplashBonjour";
+
+// Une seule fois par lancement : se reconnecter ou changer de compte ne rejoue pas l'écran.
+let splashJoue = false;
 
 export default function RootLayout() {
   return (
@@ -34,6 +38,8 @@ function RootNavigator() {
   // passant d'une page à l'autre.
   const motionId = useMotionStore((s) => s.motionId);
   const screensOn = useMotionStore((s) => s.screens);
+  const displayName = useSessionStore((s) => s.displayName);
+  const [splash, setSplash] = useState(true);
   const stackAnimation = (screensOn ? stackAnimationFor(motionId) : "none") as any;
 
   // Session du compte Carnet restaurée au démarrage, en parallèle de celle de
@@ -81,6 +87,15 @@ function RootNavigator() {
       <CelebrationLayer />
       {/* Seulement une fois connecté : pas de « quoi de neuf » par-dessus l'écran de connexion. */}
       {status === "authenticated" ? <NouveautesModal /> : null}
+      {status === "authenticated" && splash && !splashJoue && motionId !== "aucune" ? (
+        <SplashBonjour
+          firstName={premierPrenom(displayName)}
+          onDone={() => {
+            splashJoue = true;
+            setSplash(false);
+          }}
+        />
+      ) : null}
     </>
   );
 }
