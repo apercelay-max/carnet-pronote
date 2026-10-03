@@ -86,7 +86,7 @@ function RootNavigator() {
           pouvoir tomber par-dessus n'importe quel écran. */}
       <CelebrationLayer />
       {/* Seulement une fois connecté : pas de « quoi de neuf » par-dessus l'écran de connexion. */}
-      {status === "authenticated" ? <NouveautesModal /> : null}
+      {status === "authenticated" && !(splash && !splashJoue && motionId !== "aucune") ? <NouveautesModal /> : null}
       {status === "authenticated" && splash && !splashJoue && motionId !== "aucune" ? (
         <SplashBonjour
           firstName={premierPrenom(displayName)}

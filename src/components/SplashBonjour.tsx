@@ -176,7 +176,11 @@ export function SplashBonjour({ firstName, onDone }: Props) {
 
 const s = StyleSheet.create({
   wrap: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "#000000",
     alignItems: "center",
     justifyContent: "center",
